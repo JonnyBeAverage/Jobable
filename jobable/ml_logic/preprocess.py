@@ -10,14 +10,24 @@ LEMMATIZER = WordNetLemmatizer()
 def preprocess_text(text):
 
     text = text.strip().lower()
-    text = ''.join(char for char in text if not char.isdigit())
-    text = ''.join(char for char in text if char not in string.punctuation)
 
-    tokens = text.split()
-    tokens = [LEMMATIZER.lemmatize(word, pos="v") for word in tokens]
-    tokens = [t for t in tokens if t.isalpha() and t not in STOP_WORDS]
+    # Keep + and # (for c++, c#)
+    text = re.sub(r"[^\w\s+#']", " ", text)
 
-    return [word for word in tokens if word in DATA_KEYWORDS]
+    words = text.split()
+    matches = []
+
+    # Find longest keyword length dynamically
+    max_len = max(len(k.split()) for k in DATA_KEYWORDS)
+
+    # Check phrases from 1 word up to max_len
+    for n in range(1, max_len + 1):
+        for i in range(len(words) - n + 1):
+            phrase = " ".join(words[i:i+n])
+            if phrase in DATA_KEYWORDS:
+                matches.append(phrase)
+
+    return matches
 
 def add_bag_of_words_column(df, column_name):
     df["bag_of_words"] = df[column_name].apply(preprocess_text)
