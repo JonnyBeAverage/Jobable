@@ -1,7 +1,7 @@
 from load_data import load_data
 from preprocess import add_bag_of_words_column
 from frequency import get_wordcounts
-from matching import compute_similarity
+from matching import compute_tfidf_similarity
 from recommendation import recommend_skills
 
 def run_pipeline():
@@ -22,7 +22,7 @@ def run_pipeline():
     sample_cv = "Python SQL data analysis"
     sample_jd = "Looking for Python and SQL experience"
 
-    similarity_score = compute_similarity(sample_cv, sample_jd)
+    similarity_score = compute_tfidf_similarity(sample_cv, sample_jd)
     print("Similarity score:", similarity_score)
 
     # Test recommendation
