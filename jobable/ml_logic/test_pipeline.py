@@ -3,6 +3,8 @@ from preprocess import add_bag_of_words_column
 from frequency import get_wordcounts
 from matching import compute_similarity, count_matching_keywords_no_repeats, encoder_scoring
 from recommendation import recommend_skills
+import pandas as pd
+from sentence_transformers import SentenceTransformer
 
 def run_pipeline():
 
@@ -38,7 +40,7 @@ def run_pipeline():
 ### REAL DATA TESTS
 ###
 
-# load data
+# load data CHANGE THIS TO YOUR LOCAL PATH FOR NOW
 job_df = load_data('/Users/isaac/code/ishane0620/jobable/data/job_title_des.csv')
 resume_df = load_data('/Users/isaac/code/ishane0620/jobable/data/Resume.csv')
 
@@ -49,15 +51,58 @@ test_resume_instance = resume_df.iloc[5,1] #change first number to change resume
 # test_resume_instance = resume_df[resume_df['Category']=='ENGINEERING'].iloc[5,1]
 #use category=engineering to get resumes with datascience keywords
 
+def test_tf_idf(test_job=test_job_instance, test_resume=test_resume_instance):
+    return compute_similarity(test_job, test_resume)
 
-def test_count_matching_keywords_no_repeats(test_job= test_job_instance,test_resume=test_resume_instance):
+def test_count_matching_keywords_no_repeats(test_job=test_job_instance, test_resume=test_resume_instance):
     return count_matching_keywords_no_repeats(test_job, test_resume)
 
-def test_encoder_scoring(test_job= test_job_instance,test_resume=test_resume_instance):
-    return encoder_scoring(test_job, test_resume)
+def test_encoder_scoring(test_job=test_job_instance, test_resume=test_resume_instance, model=None):
+    return encoder_scoring(test_job, test_resume, model)
 
+
+
+###
+### TEST ALL DOCUMENTS
+### finds best scoring documents for a given resume
+###
+
+def test_all_scoring_functions(test_resume=test_resume_instance, job_df=job_df, save_csv=True):
+
+    top10_df = pd.DataFrame()
+
+    #TFIDF
+    job_df['tfidf_score'] = job_df['Job Description'].apply(lambda x: test_tf_idf(x, test_resume))
+    t = job_df.sort_values(by='tfidf_score', ascending=False).head(10) #higher is better
+
+    top10_df['tfidf_job_index'] = t.index
+    top10_df[['tfidf_job_descriptions', 'tfidf_scores']] = t[['Job Description','tfidf_score']].values
+    print('M: finished TFIDF tests')
+
+
+    #KEYWORD MATCHING
+    job_df['matching_score'] = job_df['Job Description'].apply(lambda x: test_count_matching_keywords_no_repeats(x, test_resume))
+    t = job_df.sort_values(by='matching_score', ascending=False).head(10)
+
+    top10_df['keyword_matching_job_index'] = t.index
+    top10_df[['keyword_matching_job_descriptions', 'keyword_matching_scores']] = t[['Job Description','matching_score']].values
+
+    print('M: finished keyword matching tests')
+
+    #ENCODER
+    model = SentenceTransformer("all-MiniLM-L6-v2")
+    job_df['encoder_scores'] = job_df['Job Description'].apply(lambda x: test_encoder_scoring(x, test_resume, model))
+    t= job_df.sort_values(by='encoder_scores', ascending=False).head(10)
+
+    top10_df['encoder_job_index'] = t.index
+    top10_df[['encoder_job_descriptions', 'encoder_scores']] = t[['Job Description','encoder_scores']].values
+    print('M: finished keyword encoder tests')
+
+    if save_csv:
+        top10_df.to_csv('test_results/aggregate_test_results.csv')
+
+    return top10_df
 
 if __name__ == "__main__":
     print('running')
-    print(test_count_matching_keywords_no_repeats())
-    print(test_encoder_scoring())
+    print(test_all_scoring_functions())
