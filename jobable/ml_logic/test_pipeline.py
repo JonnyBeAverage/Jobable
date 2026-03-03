@@ -1,7 +1,8 @@
 from load_data import load_data
 from preprocess import add_bag_of_words_column
 from frequency import get_wordcounts
-from matching import compute_similarity, count_matching_keywords_no_repeats, encoder_scoring
+from matching import compute_tfidf_similarity, count_matching_keywords_no_repeats, encoder_scoring
+
 from recommendation import recommend_skills
 import pandas as pd
 from sentence_transformers import SentenceTransformer
@@ -24,7 +25,7 @@ def run_pipeline():
     sample_cv = "Python SQL data analysis"
     sample_jd = "Looking for Python and SQL experience"
 
-    similarity_score = compute_similarity(sample_cv, sample_jd)
+    similarity_score = compute_tfidf_similarity(sample_cv, sample_jd)
     print("Similarity score:", similarity_score)
 
     # Test recommendation
