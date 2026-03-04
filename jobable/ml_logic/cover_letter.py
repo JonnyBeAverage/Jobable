@@ -1,12 +1,12 @@
 from summarizer import summarize_text, truncate_to_token_limit
-from model import generator
+from model import tokenizer, model
 
 def create_cover_letter(cv_text: str, jd_text: str):
 
     summarized_cv = summarize_text(cv_text)
     summarized_jd = summarize_text(jd_text)
 
-    raw_prompt = f"""
+    input_text = f"""
     You are a professional executive career coach.
 
     Write a tailored cover letter using the structure below.
@@ -41,15 +41,7 @@ def create_cover_letter(cv_text: str, jd_text: str):
 
     Write the full letter now.
     """
+    input_ids = tokenizer(input_text, return_tensors="pt").input_ids
+    outputs = model.generate(input_ids, max_new_tokens=350)
 
-    safe_prompt = truncate_to_token_limit(raw_prompt)
-
-    result = generator(
-        safe_prompt,
-        max_new_tokens=350,
-        do_sample=True,
-        temperature=0.7,
-        top_p=0.9,
-        repetition_penalty=1.2
-    )
-    return result[0]["generated_text"]
+    return tokenizer.decode(outputs[0], skip_special_tokens=True)
