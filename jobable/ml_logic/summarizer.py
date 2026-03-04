@@ -1,4 +1,4 @@
-from model import tokenizer, generator
+from model import tokenizer, model
 
 def truncate_to_token_limit(text, max_tokens=450):
     tokens = tokenizer(
@@ -19,5 +19,7 @@ def summarize_text(text: str, max_tokens: int = 200):
     {safe_text}
     """
 
-    summarized_text = generator(prompt, max_new_tokens=max_tokens)
-    return summarized_text[0]["generated_text"]
+    input_ids = tokenizer(prompt, return_tensors="pt").input_ids
+    outputs = model.generate(input_ids, max_new_tokens=max_tokens)
+
+    return tokenizer.decode(outputs[0], skip_special_tokens=True)
