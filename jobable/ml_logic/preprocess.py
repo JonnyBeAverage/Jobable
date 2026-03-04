@@ -13,8 +13,8 @@ def preprocess_text(text):
 
     # Keep + and # (for c++, c#)
     text = re.sub(r"[^\w\s+#']", " ", text)
-
     words = text.split()
+
     matches = []
 
     # Find longest keyword length dynamically
@@ -27,7 +27,7 @@ def preprocess_text(text):
             if phrase in DATA_KEYWORDS:
                 matches.append(phrase)
 
-    return matches
+    return set(matches)
 
 def add_bag_of_words_column(df, column_name):
     df["bag_of_words"] = df[column_name].apply(preprocess_text)
