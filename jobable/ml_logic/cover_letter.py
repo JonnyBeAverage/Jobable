@@ -1,4 +1,4 @@
-from summarizer import summarize_text, truncate_to_token_limit
+from summarizer import summarize_text
 from model import tokenizer, model
 
 def create_cover_letter(cv_text: str, jd_text: str):
