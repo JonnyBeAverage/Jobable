@@ -1,10 +1,4 @@
-from transformers import pipeline, AutoTokenizer
+from transformers import T5Tokenizer, T5ForConditionalGeneration
 
-MODEL_NAME = "google/flan-t5-large"
-
-tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
-
-generator = pipeline(
-    "text2text-generation",
-    model=MODEL_NAME
-)
+tokenizer = T5Tokenizer.from_pretrained("google/flan-t5-large")
+model = T5ForConditionalGeneration.from_pretrained("google/flan-t5-large")
