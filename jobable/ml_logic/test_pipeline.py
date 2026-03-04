@@ -53,7 +53,7 @@ test_resume_instance = resume_df.iloc[5,1] #change first number to change resume
 #use category=engineering to get resumes with datascience keywords
 
 def test_tf_idf(test_job=test_job_instance, test_resume=test_resume_instance):
-    return compute_similarity(test_job, test_resume)
+    return compute_tfidf_similarity(test_job, test_resume)
 
 def test_count_matching_keywords_no_repeats(test_job=test_job_instance, test_resume=test_resume_instance):
     return count_matching_keywords_no_repeats(test_job, test_resume)
