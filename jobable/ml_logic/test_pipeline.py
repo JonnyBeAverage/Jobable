@@ -42,8 +42,8 @@ def run_pipeline():
 ###
 
 # load data CHANGE THIS TO YOUR LOCAL PATH FOR NOW
-job_df = load_data('/Users/isaac/code/ishane0620/jobable/data/job_title_des.csv')
-resume_df = load_data('/Users/isaac/code/ishane0620/jobable/data/Resume.csv')
+job_df = load_data('../data/job_title_des.csv')
+resume_df = load_data('../data/job_title_des.csv')
 
 #select resume and job instance from df
 test_job_instance = job_df.iloc[9, 2] #change first number to change resume instance (e.g [10,2] for the resume in index 10)
