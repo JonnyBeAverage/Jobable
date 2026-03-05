@@ -43,14 +43,14 @@ def run_pipeline():
 ###
 
 # load data CHANGE THIS TO YOUR LOCAL PATH FOR NOW
-job_df = load_data('../data/job_title_des.csv')
-resume_df = load_data('../data/resume.csv')
+job_df = load_data('jobable/data/job_title_des.csv')
+resume_df = load_data('jobable/data/resume.csv')
 
 #select resume and job instance from df
 test_job_instance = job_df.iloc[9, 2] #change first number to change resume instance (e.g [10,2] for the resume in index 10)
 
-# test_resume_instance = resume_df.iloc[5,1] #change first number to change resume instance (e.g [10,1] for the resume in index 10)
-test_resume_instance = resume_df[resume_df['Category']=='ENGINEERING'].iloc[5,1]
+test_resume_instance = resume_df.iloc[34,1] #change first number to change resume instance (e.g [10,1] for the resume in index 10)
+# test_resume_instance = resume_df[resume_df['Category']=='ENGINEERING'].iloc[5,1]
 
 #use category=engineering to get resumes with datascience keywords
 
@@ -79,7 +79,7 @@ def test_all_scoring_functions(test_resume=test_resume_instance, job_df=job_df, 
 
     #TFIDF
     job_df['tfidf_score'] = job_df['Job Description'].apply(lambda x: test_tf_idf(x, test_resume))
-    t = job_df.sort_values(by='tfidf_score', ascending=False).head(10) #higher is better
+    t = job_df.sort_values(by='tfidf_score', ascending=False).head(5) #higher is better
 
     top10_df['tfidf_job_index'] = t.index
     top10_df[['tfidf_job_descriptions', 'tfidf_scores']] = t[['Job Description','tfidf_score']].values
@@ -88,7 +88,7 @@ def test_all_scoring_functions(test_resume=test_resume_instance, job_df=job_df, 
 
     #KEYWORD MATCHING
     job_df['matching_score'] = job_df['Job Description'].apply(lambda x: test_count_matching_keywords_no_repeats(x, test_resume))
-    t = job_df.sort_values(by='matching_score', ascending=False).head(10)
+    t = job_df.sort_values(by='matching_score', ascending=False).head(5)
 
     top10_df['keyword_matching_job_index'] = t.index
     top10_df[['keyword_matching_job_descriptions', 'keyword_matching_scores']] = t[['Job Description','matching_score']].values
@@ -98,7 +98,7 @@ def test_all_scoring_functions(test_resume=test_resume_instance, job_df=job_df, 
     #ENCODER
     model = SentenceTransformer("all-MiniLM-L6-v2")
     job_df['encoder_scores'] = job_df['Job Description'].apply(lambda x: test_encoder_scoring(x, test_resume, model))
-    t= job_df.sort_values(by='encoder_scores', ascending=False).head(10)
+    t= job_df.sort_values(by='encoder_scores', ascending=False).head(5)
 
     top10_df['encoder_job_index'] = t.index
     top10_df[['encoder_job_descriptions', 'encoder_scores']] = t[['Job Description','encoder_scores']].values

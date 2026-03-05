@@ -25,7 +25,7 @@ def count_matching_keywords_no_repeats(resume_text, job_text):
         if key_word in bag_of_resume:
             matching.add(key_word)
 
-    return len(key_word)
+    return len(matching)
 
 
 def encoder_scoring(resume_text, job_text, model=None):
