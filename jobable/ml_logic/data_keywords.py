@@ -1,4 +1,4 @@
-DATA_KEYWORDS = {
+list_of_keywords = {
     "data scientist", "senior data scientist", "machine learning engineer", "applied scientist",
     "research scientist", "data analyst", "business analyst", "bi analyst", "analytics engineer",
     "data engineer", "etl developer", "big data engineer", "mlops engineer", "ml engineer",
@@ -127,3 +127,5 @@ DATA_KEYWORDS = {
     "microsoft certified data scientist",
     "databricks certification"
 }
+
+DATA_KEYWORDS = {k.strip().lower() for k in list_of_keywords}
