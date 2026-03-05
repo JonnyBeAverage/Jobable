@@ -10,7 +10,7 @@ from sentence_transformers import SentenceTransformer
 def run_pipeline():
 
     # Load Data, for testing change the path to the data
-    df = load_data("/Users/jonny/code/JonnyBeAverage/Jobable/data/Jobs.csv")
+    df = load_data("../data/Jobs.csv")
     print("Data loaded:", df.shape)
 
     # Preprocess, may need to change the name of the column from 'description'
