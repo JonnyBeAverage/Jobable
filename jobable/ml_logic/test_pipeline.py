@@ -3,6 +3,7 @@ from preprocess import add_bag_of_words_column
 from frequency import get_wordcounts
 from matching import compute_tfidf_similarity, count_matching_keywords_no_repeats, encoder_scoring
 
+import os
 from recommendation import recommend_skills
 import pandas as pd
 from sentence_transformers import SentenceTransformer
@@ -43,14 +44,18 @@ def run_pipeline():
 
 # load data CHANGE THIS TO YOUR LOCAL PATH FOR NOW
 job_df = load_data('../data/job_title_des.csv')
-resume_df = load_data('../data/job_title_des.csv')
+resume_df = load_data('../data/resume.csv')
 
 #select resume and job instance from df
 test_job_instance = job_df.iloc[9, 2] #change first number to change resume instance (e.g [10,2] for the resume in index 10)
 
-test_resume_instance = resume_df.iloc[5,1] #change first number to change resume instance (e.g [10,1] for the resume in index 10)
-# test_resume_instance = resume_df[resume_df['Category']=='ENGINEERING'].iloc[5,1]
+# test_resume_instance = resume_df.iloc[5,1] #change first number to change resume instance (e.g [10,1] for the resume in index 10)
+test_resume_instance = resume_df[resume_df['Category']=='ENGINEERING'].iloc[5,1]
+
 #use category=engineering to get resumes with datascience keywords
+
+test_resume_id = resume_df[resume_df['Resume_str']==test_resume_instance].iloc[0,0]
+
 
 def test_tf_idf(test_job=test_job_instance, test_resume=test_resume_instance):
     return compute_tfidf_similarity(test_job, test_resume)
@@ -100,7 +105,8 @@ def test_all_scoring_functions(test_resume=test_resume_instance, job_df=job_df, 
     print('M: finished keyword encoder tests')
 
     if save_csv:
-        top10_df.to_csv('test_results/aggregate_test_results.csv')
+        os.makedirs('jobable/test_results', exist_ok=True)
+        top10_df.to_csv(f'jobable/test_results/all_tests_resumeid={test_resume_id}.csv')
 
     return top10_df
 
