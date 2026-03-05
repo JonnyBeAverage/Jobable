@@ -1,25 +1,11 @@
 """
 Jobable — Streamlit frontend shell.
 Top: search + CV upload. Main: scrollable list of jobs with title and description preview.
-Generate CV button runs create_cover_letter(cv_text, jd_text).
 """
 
 import streamlit as st
 import pandas as pd
 from pathlib import Path
-from io import BytesIO
-
-# Optional: PDF/DOCX text extraction
-try:
-    from pypdf import PdfReader
-except ImportError:
-    PdfReader = None
-try:
-    from docx import Document as DocxDocument
-except ImportError:
-    DocxDocument = None
-
-from jobable.ml_logic.cover_letter import create_cover_letter
 
 # Page config
 st.set_page_config(page_title="Jobable", page_icon="💼", layout="wide", initial_sidebar_state="collapsed")
@@ -77,34 +63,6 @@ def load_jobs_csv(path: Path):
 
 JOBS = load_jobs_csv(DATA_PATH)
 
-JOBS_PER_PAGE = 30
-NO_CV_ERROR = "Error: No CV uploaded. Please upload a resume to generate a cover letter."
-
-
-def get_cv_text(uploaded_file) -> str | None:
-    """Extract plain text from uploaded CV (txt, pdf, or docx). Returns None if unreadable."""
-    if uploaded_file is None:
-        return None
-    raw = uploaded_file.read()
-    uploaded_file.seek(0)
-    name = (uploaded_file.name or "").lower()
-    if name.endswith(".txt"):
-        return raw.decode("utf-8", errors="replace")
-    if name.endswith(".pdf") and PdfReader is not None:
-        try:
-            reader = PdfReader(BytesIO(raw))
-            return "\n".join(p.extract_text() or "" for p in reader.pages)
-        except Exception:
-            return None
-    if (name.endswith(".docx") or name.endswith(".doc")) and DocxDocument is not None:
-        try:
-            doc = DocxDocument(BytesIO(raw))
-            return "\n".join(p.text for p in doc.paragraphs)
-        except Exception:
-            return None
-    return None
-
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -114,18 +72,6 @@ def job_preview_text(description: str, max_words: int = 12) -> str:
         return description
     return " ".join(words[:max_words]) + "…"
 
-
-# ---------------------------------------------------------------------------
-# Session state
-# ---------------------------------------------------------------------------
-if "page" not in st.session_state:
-    st.session_state.page = 0
-if "generate_for_job_index" not in st.session_state:
-    st.session_state.generate_for_job_index = None
-if "last_cover_letter" not in st.session_state:
-    st.session_state.last_cover_letter = None
-if "last_cover_letter_job_index" not in st.session_state:
-    st.session_state.last_cover_letter_job_index = None
 
 # ---------------------------------------------------------------------------
 # Layout
@@ -151,68 +97,62 @@ with st.container():
         if uploaded_cv is not None:
             st.caption(f"📄 {uploaded_cv.name}")
 
-# ----- Cover letter: run on "Generate CV" click -----
-idx = st.session_state.generate_for_job_index
-if idx is not None:
-    cv_text = get_cv_text(uploaded_cv) if uploaded_cv else None
-    if not cv_text or not cv_text.strip():
-        st.error(NO_CV_ERROR)
-    else:
-        job = JOBS[idx]
-        with st.spinner("Generating cover letter…"):
-            try:
-                letter = create_cover_letter(cv_text, job["description"])
-                st.session_state.last_cover_letter = letter
-                st.session_state.last_cover_letter_job_index = idx
-            except Exception as e:
-                st.error(f"Error generating cover letter: {e}")
-    st.session_state.generate_for_job_index = None
+# Placeholder for when we wire up: run search + CV matching here
+# if uploaded_cv: ...
+# if search_query: filter JOBS
 
-if st.session_state.last_cover_letter:
-    with st.expander("📄 Generated cover letter", expanded=True):
-        st.write(st.session_state.last_cover_letter)
-    st.caption(f"Generated for job index {st.session_state.last_cover_letter_job_index}.")
-
-# ----- Main: Scrollable jobs list (paginated, with Generate CV button) -----
+# ----- Main: Scrollable jobs list -----
 st.subheader("Jobs")
 st.divider()
 
-num_pages = max(1, (len(JOBS) + JOBS_PER_PAGE - 1) // JOBS_PER_PAGE)
-st.session_state.page = max(0, min(st.session_state.page, num_pages - 1))
-page = st.session_state.page
-start = page * JOBS_PER_PAGE
-end = min(start + JOBS_PER_PAGE, len(JOBS))
-page_jobs = [(start + i, JOBS[start + i]) for i in range(end - start)]
+# Build HTML for job cards and render via components.html so it isn't escaped
+job_cards_html = []
+for job in JOBS:
+    meta = job.get("company", "—")
+    preview = job_preview_text(job["description"])
+    # Escape for use inside HTML (in case job text contains < or &)
+    title_esc = job["title"].replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    meta_esc = meta.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    preview_esc = preview.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    card = f"""
+    <div class="jobable-job-card">
+        <div class="jobable-job-title">{meta_esc}</div>
+        <div class="jobable-job-meta">{title_esc}</div>
+        <div class="jobable-job-desc">{preview_esc}</div>
+    </div>
+    """
+    job_cards_html.append(card)
 
-def set_generate_job(job_index: int):
-    st.session_state.generate_for_job_index = job_index
+html_content = f"""
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+.jobable-job-list {{
+    padding-top: 0;
+    padding-right: 8px;
+    font-family: inherit;
+}}
+.jobable-job-card {{
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 0.75rem;
+    border-left: 4px solid #0e1117;
+}}
+.jobable-job-title {{ font-weight: 600; font-size: 1.05rem; color: #0e1117; }}
+.jobable-job-meta {{ font-size: 0.85rem; color: #666; margin-top: 0.25rem; }}
+.jobable-job-desc {{ font-size: 0.9rem; color: #333; margin-top: 0.5rem; line-height: 1.4; }}
+</style>
+</head>
+<body>
+<div class="jobable-job-list">
+{"".join(job_cards_html)}
+</div>
+</body>
+</html>
+"""
+# Height is overridden by CSS so the iframe fills remaining viewport
+st.components.v1.html(html_content, height=500, scrolling=True)
 
-with st.container():
-    for job_index, job in page_jobs:
-        col_content, col_btn = st.columns([4, 1])
-        with col_content:
-            st.markdown(f"**{job.get('company', '—')}**")
-            st.caption(job.get("title", "—"))
-            st.markdown(job_preview_text(job["description"]))
-        with col_btn:
-            st.button(
-                "Generate CV",
-                key=f"gen_cv_{job_index}",
-                on_click=set_generate_job,
-                args=(job_index,),
-            )
-        st.divider()
-
-prev_col, info_col, next_col = st.columns([1, 2, 1])
-with prev_col:
-    if st.button("← Previous", disabled=(page <= 0)):
-        st.session_state.page = page - 1
-        st.rerun()
-with info_col:
-    st.caption(f"Page {page + 1} of {num_pages} · Jobs {start + 1}–{end} of {len(JOBS)}")
-with next_col:
-    if st.button("Next →", disabled=(page >= num_pages - 1)):
-        st.session_state.page = page + 1
-        st.rerun()
-
-st.caption(f"Showing {len(JOBS)} jobs. Upload a CV and click « Generate CV » on a job to create a cover letter.")
+st.caption(f"Showing {len(JOBS)} jobs. Connect search and CV matching to filter and rank.")
