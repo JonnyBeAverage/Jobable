@@ -1,5 +1,5 @@
-from summarizer import summarize_text
-from model import tokenizer, model
+from .summarizer import summarize_text
+from .model import tokenizer, model
 
 def create_cover_letter(cv_text: str, jd_text: str):
 

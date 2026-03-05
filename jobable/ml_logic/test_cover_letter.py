@@ -1,5 +1,5 @@
-from load_data import load_data
-from cover_letter import create_cover_letter
+from jobable.ml_logic.load_data import load_data
+from jobable.ml_logic.cover_letter import create_cover_letter
 
 def run_cover_letter_test():
 

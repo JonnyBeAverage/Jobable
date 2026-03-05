@@ -7,7 +7,11 @@ import streamlit as st
 import pandas as pd
 from pathlib import Path
 
+from jobable.ml_logic.cover_letter import create_cover_letter
+from jobable.ml_logic.matching import compute_tfidf_similarity
+
 # Page config
+
 st.set_page_config(page_title="Jobable", page_icon="💼", layout="wide", initial_sidebar_state="collapsed")
 
 # Remove top padding and make page non-scrolling; only the job list iframe scrolls
@@ -62,6 +66,7 @@ def load_jobs_csv(path: Path):
 
 
 JOBS = load_jobs_csv(DATA_PATH)
+JOBS_PER_PAGE = 20
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -71,6 +76,50 @@ def job_preview_text(description: str, max_words: int = 12) -> str:
     if len(words) <= max_words:
         return description
     return " ".join(words[:max_words]) + "…"
+
+
+def get_cv_text(uploaded_file) -> str | None:
+    """Extract text from uploaded CV. Supports .txt; PDF/DOCX require pypdf and python-docx."""
+    if uploaded_file is None:
+        return None
+    import io
+    raw = uploaded_file.getvalue()
+    name = (uploaded_file.name or "").lower()
+    if name.endswith(".txt"):
+        try:
+            return raw.decode("utf-8", errors="replace")
+        except Exception:
+            return None
+    if name.endswith(".pdf"):
+        try:
+            import pypdf
+            reader = pypdf.PdfReader(io.BytesIO(raw))
+            return "\n".join((p.extract_text() or "") for p in reader.pages)
+        except Exception:
+            return None
+    if name.endswith(".docx"):
+        try:
+            import docx
+            doc = docx.Document(io.BytesIO(raw))
+            return "\n".join(p.text for p in doc.paragraphs)
+        except Exception:
+            return None
+    return None
+
+
+def cover_letter_to_pdf(letter_text: str) -> bytes:
+    """Build a PDF from cover letter text. Returns PDF bytes."""
+    from fpdf import FPDF
+
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Helvetica", size=11)
+    pdf.set_auto_page_break(auto=True, margin=15)
+    # Ensure we only pass bytes that the font can display (Helvetica is Latin-1)
+    safe_text = letter_text.encode("latin-1", errors="replace").decode("latin-1")
+    for line in safe_text.splitlines():
+        pdf.multi_cell(0, 8, line or " ")
+    return bytes(pdf.output())
 
 
 # ---------------------------------------------------------------------------
@@ -96,63 +145,105 @@ with st.container():
         )
         if uploaded_cv is not None:
             st.caption(f"📄 {uploaded_cv.name}")
+            search_with_cv_clicked = st.button("Search with CV", key="search_with_cv")
+        else:
+            search_with_cv_clicked = False
 
-# Placeholder for when we wire up: run search + CV matching here
-# if uploaded_cv: ...
-# if search_query: filter JOBS
+if search_with_cv_clicked and uploaded_cv is not None:
+    cv_text = get_cv_text(uploaded_cv)
+    if cv_text and cv_text.strip():
+        with st.spinner("Ranking jobs by CV match…"):
+            scored = []
+            for i, job in enumerate(JOBS):
+                score = compute_tfidf_similarity(job["description"], cv_text)
+                scored.append((score, i))
+            scored.sort(key=lambda x: x[0], reverse=True)
+            st.session_state["jobs_display_order"] = [i for _, i in scored]
+            st.session_state["jobs_page"] = 0
+        st.rerun()
+    else:
+        st.warning("Could not read CV text. Try uploading a .txt file.")
 
 # ----- Main: Scrollable jobs list -----
 st.subheader("Jobs")
+if st.session_state.get("jobs_display_order") is not None:
+    st.caption("Sorted by CV match (best first)")
 st.divider()
 
-# Build HTML for job cards and render via components.html so it isn't escaped
-job_cards_html = []
-for job in JOBS:
-    meta = job.get("company", "—")
-    preview = job_preview_text(job["description"])
-    # Escape for use inside HTML (in case job text contains < or &)
-    title_esc = job["title"].replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-    meta_esc = meta.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-    preview_esc = preview.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-    card = f"""
-    <div class="jobable-job-card">
-        <div class="jobable-job-title">{meta_esc}</div>
-        <div class="jobable-job-meta">{title_esc}</div>
-        <div class="jobable-job-desc">{preview_esc}</div>
-    </div>
-    """
-    job_cards_html.append(card)
 
-html_content = f"""
-<!DOCTYPE html>
-<html>
-<head>
-<style>
-.jobable-job-list {{
-    padding-top: 0;
-    padding-right: 8px;
-    font-family: inherit;
-}}
-.jobable-job-card {{
-    background: #f8f9fa;
-    border-radius: 8px;
-    padding: 1rem 1.25rem;
-    margin-bottom: 0.75rem;
-    border-left: 4px solid #0e1117;
-}}
-.jobable-job-title {{ font-weight: 600; font-size: 1.05rem; color: #0e1117; }}
-.jobable-job-meta {{ font-size: 0.85rem; color: #666; margin-top: 0.25rem; }}
-.jobable-job-desc {{ font-size: 0.9rem; color: #333; margin-top: 0.5rem; line-height: 1.4; }}
-</style>
-</head>
-<body>
-<div class="jobable-job-list">
-{"".join(job_cards_html)}
-</div>
-</body>
-</html>
-"""
-# Height is overridden by CSS so the iframe fills remaining viewport
-st.components.v1.html(html_content, height=500, scrolling=True)
+def _safe_filename(s: str, max_len: int = 50) -> str:
+    return "".join(c for c in s if c.isalnum() or c in " -_")[:max_len].strip() or "Job"
 
-st.caption(f"Showing {len(JOBS)} jobs. Connect search and CV matching to filter and rank.")
+
+if "jobs_page" not in st.session_state:
+    st.session_state["jobs_page"] = 0
+
+# Use CV-sorted order if available, else default order
+display_order = st.session_state.get("jobs_display_order")
+if display_order is None or len(display_order) != len(JOBS):
+    display_order = list(range(len(JOBS)))
+
+total_jobs = len(display_order)
+total_pages = max(1, (total_jobs + JOBS_PER_PAGE - 1) // JOBS_PER_PAGE)
+current_page = max(0, min(st.session_state["jobs_page"], total_pages - 1))
+if current_page != st.session_state["jobs_page"]:
+    st.session_state["jobs_page"] = current_page
+
+page_start = current_page * JOBS_PER_PAGE
+page_end = min(page_start + JOBS_PER_PAGE, total_jobs)
+
+for idx in range(page_start, page_end):
+    i = display_order[idx]  # global index in JOBS
+    job = JOBS[i]
+    with st.container():
+        st.markdown(f"**{job.get('company', '—')}** — *{job['title']}*")
+        st.caption(job_preview_text(job["description"]))
+        if st.button("Generate Cover Letter", key=f"jobable-cl-{i}"):
+            if uploaded_cv is None:
+                st.warning("Upload a CV first to generate a cover letter.")
+            else:
+                cv_text = get_cv_text(uploaded_cv)
+                if not (cv_text and cv_text.strip()):
+                    st.warning("Could not read CV text. Try uploading a .txt file.")
+                else:
+                    jd_text = job["description"]
+                    with st.spinner("Generating cover letter…"):
+                        try:
+                            letter = create_cover_letter(cv_text, jd_text)
+                            pdf_bytes = cover_letter_to_pdf(letter)
+                            st.session_state["cover_letter_pdf_bytes"] = pdf_bytes
+                            st.session_state["cover_letter_job_ix"] = i
+                        except Exception as e:
+                            st.error(f"Error generating cover letter: {e}")
+        # Show download button in this card when the cover letter was generated for this job
+        if (
+            "cover_letter_pdf_bytes" in st.session_state
+            and st.session_state.get("cover_letter_job_ix") == i
+        ):
+            job_label = _safe_filename(job["title"])
+            st.download_button(
+                label="Download cover letter",
+                data=st.session_state["cover_letter_pdf_bytes"],
+                file_name=f"cover_letter_{job_label}.pdf",
+                mime="application/pdf",
+                key=f"download_cover_letter_{i}",
+            )
+        st.divider()
+
+# Pagination controls
+col_prev, col_info, col_next = st.columns([1, 2, 1])
+with col_prev:
+    prev_clicked = st.button("← Previous", key="jobs_prev", disabled=(current_page == 0))
+with col_info:
+    st.caption(f"Page **{current_page + 1}** of **{total_pages}** — showing {page_start + 1}–{page_end} of {total_jobs} jobs")
+with col_next:
+    next_clicked = st.button("Next →", key="jobs_next", disabled=(current_page >= total_pages - 1))
+
+if prev_clicked:
+    st.session_state["jobs_page"] = max(0, current_page - 1)
+    st.rerun()
+if next_clicked:
+    st.session_state["jobs_page"] = min(total_pages - 1, current_page + 1)
+    st.rerun()
+
+st.caption("Connect search and CV matching to filter and rank.")
