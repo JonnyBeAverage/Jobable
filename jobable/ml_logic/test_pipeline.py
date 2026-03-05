@@ -10,7 +10,7 @@ from sentence_transformers import SentenceTransformer
 def run_pipeline():
 
     # Load Data, for testing change the path to the data
-    df = load_data("/Users/jonny/code/JonnyBeAverage/Jobable/data/Jobs.csv")
+    df = load_data("../data/Jobs.csv")
     print("Data loaded:", df.shape)
 
     # Preprocess, may need to change the name of the column from 'description'
@@ -42,8 +42,8 @@ def run_pipeline():
 ###
 
 # load data CHANGE THIS TO YOUR LOCAL PATH FOR NOW
-job_df = load_data('/Users/isaac/code/ishane0620/jobable/data/job_title_des.csv')
-resume_df = load_data('/Users/isaac/code/ishane0620/jobable/data/Resume.csv')
+job_df = load_data('../data/job_title_des.csv')
+resume_df = load_data('../data/Resume.csv')
 
 #select resume and job instance from df
 test_job_instance = job_df.iloc[9, 2] #change first number to change resume instance (e.g [10,2] for the resume in index 10)
