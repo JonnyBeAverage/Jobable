@@ -1,4 +1,4 @@
-from model import tokenizer, model
+from .model import tokenizer, model
 
 def truncate_to_token_limit(text, max_tokens=450):
     tokens = tokenizer(

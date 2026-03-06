@@ -1,5 +1,5 @@
-from summarizer import summarize_text
-from model import tokenizer, model
+from .summarizer import summarize_text
+from .model import tokenizer, model
 
 def create_cover_letter(cv_text: str, jd_text: str):
 
@@ -45,3 +45,7 @@ def create_cover_letter(cv_text: str, jd_text: str):
     outputs = model.generate(input_ids, max_new_tokens=350)
 
     return tokenizer.decode(outputs[0], skip_special_tokens=True)
+
+
+if __name__ == '__main__':
+    print(create_cover_letter('does this work? I am testing this', 'this does work. The test has succeeded'))

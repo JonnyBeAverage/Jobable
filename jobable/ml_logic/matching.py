@@ -1,6 +1,6 @@
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-from preprocess import preprocess_text
+from .preprocess import preprocess_text
 from sentence_transformers import SentenceTransformer, util
 
 def compute_tfidf_similarity(text1, text2):
