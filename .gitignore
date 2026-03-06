@@ -217,3 +217,5 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
+#ML Model
+jobable/ml_logic/model_tuning/sft/cover_letter_model_2
