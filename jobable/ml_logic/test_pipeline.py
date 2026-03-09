@@ -52,6 +52,7 @@ test_job_instance = job_df.iloc[9, 2] #change first number to change resume inst
 # test_resume_instance = resume_df.iloc[5,1] #change first number to change resume instance (e.g [10,1] for the resume in index 10)
 test_resume_instance = resume_df[resume_df['Category']=='ENGINEERING'].iloc[5,1]
 
+
 #use category=engineering to get resumes with datascience keywords
 
 test_resume_id = resume_df[resume_df['Resume_str']==test_resume_instance].iloc[0,0]

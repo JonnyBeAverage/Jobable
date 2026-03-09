@@ -1,5 +1,8 @@
 *.csv
 data/
+
+test_resume.txt
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
@@ -217,3 +220,6 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
+#ML Model
+jobable/ml_logic/model_tuning/sft/cover_letter_model_2
+jobable/archived_models
