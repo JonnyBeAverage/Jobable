@@ -1,6 +1,6 @@
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-from preprocess import preprocess_text
+from .preprocess import preprocess_text
 from sentence_transformers import SentenceTransformer, util
 
 def compute_tfidf_similarity(text1, text2):
@@ -44,3 +44,22 @@ def encoder_scoring(resume_text, job_text, model=None):
     sim = util.cos_sim(resume_emb, job_embs)[0].cpu().numpy()
 
     return sim
+
+
+def keywords_missing(job_text, resume_text=None, kw_job=None, kw_resume=None):
+    """
+    finds keywords in job but not in resume (can also pass in kw_resume for efficiency)
+    """
+    if not kw_resume and not resume_text:
+        return
+    if not kw_job and not job_text:
+        return 
+
+
+    if not kw_resume:
+        kw_resume = preprocess_text(resume_text)
+    if not kw_job:
+        kw_job = preprocess_text(job_text)
+
+
+    return set(w for w in kw_job if w not in kw_resume)

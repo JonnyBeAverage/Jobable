@@ -44,13 +44,15 @@ def run_pipeline():
 
 # load data CHANGE THIS TO YOUR LOCAL PATH FOR NOW
 job_df = load_data('jobable/data/job_title_des.csv')
-resume_df = load_data('jobable/data/gpt_dataset.csv')
+resume_df = load_data('jobable/data/resume.csv')
+
 
 #select resume and job instance from df
 test_job_instance = job_df.iloc[9, 2] #change first number to change resume instance (e.g [10,2] for the resume in index 10)
 
 test_resume_instance = resume_df.iloc[34,1] #change first number to change resume instance (e.g [10,1] for the resume in index 10)
 # test_resume_instance = resume_df[resume_df['Category']=='ENGINEERING'].iloc[5,1]
+
 
 #use category=engineering to get resumes with datascience keywords
 # test_resume_id = resume_df[resume_df['Resume_str']==test_resume_instance].iloc[0,0]

@@ -1,4 +1,6 @@
-from model import tokenizer, model
+from .model import tokenizer, model
+import torch
+
 
 def truncate_to_token_limit(text, max_tokens=450):
     tokens = tokenizer(
@@ -9,17 +11,70 @@ def truncate_to_token_limit(text, max_tokens=450):
     )
     return tokenizer.decode(tokens["input_ids"][0], skip_special_tokens=True)
 
-def summarize_text(text: str, max_tokens: int = 200):
-    safe_text = truncate_to_token_limit(text)
 
-    prompt = f"""
-    Summarize the following text into concise professional bullet points.
-    Focus on key skills, experience, and measurable achievements.
+def generate_text(prompt, max_tokens=150):
 
-    {safe_text}
-    """
+    device = model.device
 
-    input_ids = tokenizer(prompt, return_tensors="pt").input_ids
-    outputs = model.generate(input_ids, max_new_tokens=max_tokens)
+    inputs = tokenizer(
+        prompt,
+        return_tensors="pt",
+        truncation=True,
+        padding=True
+    )
+
+    inputs = {k: v.to(device) for k, v in inputs.items()}
+
+    with torch.no_grad():
+        outputs = model.generate(
+            **inputs,
+            max_new_tokens=120,
+            do_sample=True,
+            temperature=0.4
+        )
 
     return tokenizer.decode(outputs[0], skip_special_tokens=True)
+
+
+def summarize_resume(resume_text: str):
+
+    safe_text = truncate_to_token_limit(resume_text)
+
+    prompt = f"""
+Extract the most important professional highlights from this resume.
+
+Return 4-6 concise bullet points including:
+- years of experience
+- key skills
+- leadership or achievements
+- industries worked in
+
+Resume:
+{safe_text}
+
+Bullet Point Summary:
+"""
+
+    return generate_text(prompt)
+
+
+def summarize_job_description(jd_text: str):
+
+    safe_text = truncate_to_token_limit(jd_text)
+
+    prompt = f"""
+Summarize the key requirements of this job description.
+
+Return 4-6 bullet points including:
+- core skills required
+- technologies
+- experience expectations
+- main responsibilities
+
+Job Description:
+{safe_text}
+
+Key Requirements:
+"""
+
+    return generate_text(prompt)
