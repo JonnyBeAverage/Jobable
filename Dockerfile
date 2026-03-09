@@ -9,9 +9,11 @@ RUN apt-get update && \
 WORKDIR /Jobable-1
 
 COPY requirements.txt .
-RUN pip install -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+COPY jobable/ml_logic jobable/ml_logic
+COPY jobable/data jobable/data
+
 
 EXPOSE 8000
 
