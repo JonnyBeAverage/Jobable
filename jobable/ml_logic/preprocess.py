@@ -2,7 +2,7 @@ import re
 import string
 from nltk.stem import WordNetLemmatizer
 from nltk.corpus import stopwords
-from jobable.ml_logic.data_keywords import DATA_KEYWORDS
+from .data_keywords import DATA_KEYWORDS
 
 STOP_WORDS = set(stopwords.words("english"))
 LEMMATIZER = WordNetLemmatizer()

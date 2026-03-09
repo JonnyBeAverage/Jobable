@@ -8,7 +8,8 @@ import pandas as pd
 from pathlib import Path
 
 from jobable.ml_logic.cover_letter import create_cover_letter
-from jobable.ml_logic.matching import compute_tfidf_similarity
+from jobable.ml_logic.matching import compute_tfidf_similarity, keywords_missing
+from jobable.ml_logic.preprocess import preprocess_text
 
 # Page config
 
@@ -27,6 +28,23 @@ st.markdown(
     /* Job list container takes remaining space and scrolls inside iframe */
     .main .block-container > div:has(iframe) { flex: 1 1 auto; min-height: 0; overflow: hidden; }
     .main .block-container > div:has(iframe) iframe { height: 100% !important; display: block; }
+    /* Keyword pills */
+    .kw-wrap { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 6px; }
+    .kw-pill {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        background: linear-gradient(135deg, #e8eef4 0%, #dde5ed 100%);
+        color: #334155;
+        border: 1px solid rgba(148, 163, 184, 0.4);
+    }
+    .kw-pill--missing {
+        background: linear-gradient(135deg, #fecaca 0%, #fca5a5 100%);
+        color: #7f1d1d;
+        border: 1px solid rgba(185, 28, 28, 0.3);
+    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -57,10 +75,12 @@ def load_jobs_csv(path: Path):
             desc = ""
         # Flatten multiline description to single line for preview
         desc_flat = " ".join(str(desc).split())
+        kw = sorted(preprocess_text(desc_flat))  # list of keyword phrases
         jobs.append({
             "title": str(title).strip(),
             "company": f"Company {i + 1}",
             "description": desc_flat,
+            "kw": kw,
         })
     return jobs
 
@@ -121,10 +141,45 @@ def cover_letter_to_pdf(letter_text: str) -> bytes:
         pdf.multi_cell(0, 8, line or " ")
     return bytes(pdf.output())
 
-
 # ---------------------------------------------------------------------------
 # Layout
 # ---------------------------------------------------------------------------
+# Sync company page from URL (clickable company link uses ?company=<job_ix>)
+if hasattr(st, "query_params") and "company" in st.query_params:
+    try:
+        st.session_state["company_page_ix"] = int(st.query_params["company"])
+    except (ValueError, TypeError):
+        pass
+
+# ----- Company page (blank): show when navigated via company link -----
+if st.session_state.get("company_page_ix") is not None:
+    ix = st.session_state["company_page_ix"]
+    if 0 <= ix < len(JOBS):
+        job = JOBS[ix]
+        company_name = job.get("company", "—")
+        st.title("💼 Jobable")
+        if st.button("← Back to jobs", key="back_from_company"):
+            st.session_state["company_page_ix"] = None
+            if hasattr(st, "query_params"):
+                st.query_params.clear()
+            st.rerun()
+        st.subheader(company_name)
+        desc = job.get("description", "")
+        desc_esc = (
+            str(desc)
+            .replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+            .replace("\n", "<br>")
+        )
+        st.markdown(
+            f'<div style="white-space: pre-wrap;">{desc_esc}</div>',
+            unsafe_allow_html=True,
+        )
+        st.stop()
+    else:
+        st.session_state["company_page_ix"] = None
+
 st.title("💼 Jobable")
 st.caption("Find jobs that match your CV")
 
@@ -160,6 +215,9 @@ if search_with_cv_clicked and uploaded_cv is not None:
             scored.sort(key=lambda x: x[0], reverse=True)
             st.session_state["jobs_display_order"] = [i for _, i in scored]
             st.session_state["jobs_page"] = 0
+            st.session_state["cv_search_clicked"] = True
+            # Store resume keywords before rerun (file uploader often clears after rerun)
+            st.session_state["resume_kw"] = sorted(preprocess_text(cv_text))
         st.rerun()
     else:
         st.warning("Could not read CV text. Try uploading a .txt file.")
@@ -196,7 +254,12 @@ for idx in range(page_start, page_end):
     i = display_order[idx]  # global index in JOBS
     job = JOBS[i]
     with st.container():
-        st.markdown(f"**{job.get('company', '—')}** — *{job['title']}*")
+        company = job.get("company", "—")
+        company_esc = str(company).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        st.markdown(
+            f'<a href="?company={i}" style="font-weight: 700; color: inherit; text-decoration: none;">{company_esc}</a> — *{job["title"]}*',
+            unsafe_allow_html=True,
+        )
         st.caption(job_preview_text(job["description"]))
         if st.button("Generate Cover Letter", key=f"jobable-cl-{i}"):
             if uploaded_cv is None:
@@ -228,6 +291,16 @@ for idx in range(page_start, page_end):
                 mime="application/pdf",
                 key=f"download_cover_letter_{i}",
             )
+        # Keywords at bottom of card (from preprocess_text on description)
+        # Red pill only for keywords missing from resume, and only after "Search with CV" was clicked
+        kw = job.get("kw") or []
+        if kw:
+            resume_kw_set = set(st.session_state.get("resume_kw") or [])
+            show_missing = bool(st.session_state.get("cv_search_clicked") and resume_kw_set)
+            escaped = [str(k).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;") for k in kw]
+            pill_class = lambda k: "kw-pill kw-pill--missing" if show_missing and k not in resume_kw_set else "kw-pill"
+            pills = "".join(f'<span class="{pill_class(k)}">{p}</span>' for k, p in zip(kw, escaped))
+            st.markdown(f'<div class="kw-wrap">{pills}</div>', unsafe_allow_html=True)
         st.divider()
 
 # Pagination controls

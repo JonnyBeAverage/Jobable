@@ -129,3 +129,4 @@ list_of_keywords = {
 }
 
 DATA_KEYWORDS = {k.strip().lower() for k in list_of_keywords}
+
