@@ -21,7 +21,13 @@ def create_cover_letter(cv_text: str, jd_text: str):
     Job Requirements:
     {summarized_jd}
 
-    Write a professional cover letter tailored to this role.
+    Write a one page (around 400 words) professional cover letter tailored to this role.
+    Be entheusiastic, forward looking, and professional.
+
+    End the cover letter with
+    "Sincerely,
+    [Your Name]"
+
 
     Cover Letter:
     Dear Hiring Manager,
@@ -41,7 +47,7 @@ def create_cover_letter(cv_text: str, jd_text: str):
     with torch.no_grad():
         outputs = model.generate(
         **inputs,
-        max_new_tokens=250,
+        max_new_tokens=1000,
         do_sample=True,
         temperature=0.7,
         top_p=0.9,
