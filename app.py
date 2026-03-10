@@ -135,10 +135,12 @@ def cover_letter_to_pdf(letter_text: str) -> bytes:
     pdf.add_page()
     pdf.set_font("Helvetica", size=11)
     pdf.set_auto_page_break(auto=True, margin=15)
+    # Use explicit width so each line has room (w=0 uses "remaining" width and can be 0 after previous line)
+    content_width = getattr(pdf, "epw", pdf.w - pdf.l_margin - pdf.r_margin)
     # Ensure we only pass bytes that the font can display (Helvetica is Latin-1)
     safe_text = letter_text.encode("latin-1", errors="replace").decode("latin-1")
     for line in safe_text.splitlines():
-        pdf.multi_cell(0, 8, line or " ")
+        pdf.multi_cell(content_width, 8, line or " ")
     return bytes(pdf.output())
 
 # ---------------------------------------------------------------------------

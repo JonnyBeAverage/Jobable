@@ -30,3 +30,4 @@ model.to(device)
 # fix padding
 tokenizer.pad_token = tokenizer.eos_token
 model.config.pad_token_id = tokenizer.eos_token_id
+
