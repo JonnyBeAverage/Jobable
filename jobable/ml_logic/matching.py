@@ -1,6 +1,6 @@
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-from .preprocess import preprocess_text
+from preprocess import preprocess_text
 from sentence_transformers import SentenceTransformer, util
 
 def compute_tfidf_similarity(text1, text2):
@@ -53,7 +53,7 @@ def keywords_missing(job_text, resume_text=None, kw_job=None, kw_resume=None):
     if not kw_resume and not resume_text:
         return
     if not kw_job and not job_text:
-        return 
+        return
 
 
     if not kw_resume:

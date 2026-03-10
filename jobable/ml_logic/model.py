@@ -1,4 +1,5 @@
-from transformers import AutoTokenizer, AutoModelForCausalLM
+from transformers import AutoTokenizer
+from transformers import AutoModelForCausalLM
 from pathlib import Path
 import torch
 
