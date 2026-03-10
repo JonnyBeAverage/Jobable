@@ -2,6 +2,7 @@ from sklearn.feature_extraction.text import CountVectorizer
 from load_data import load_data
 import pandas as pd
 from jobable.ml_logic.data_keywords import list_of_keywords
+import matplotlib.pyplot as plt
 
 ### import dataframe
 job_df = load_data('../data/job_title_des.csv')
@@ -29,6 +30,11 @@ def skill_frequ(dataframe):
     list_count = []
     list_count = result.items()
     list_count = sorted(list_count, key = lambda item: item[1], reverse=True)
+
+    ### plot graph
+
+    x_values, y_values = zip(*list_count)
+    plt.barh(x_values, y_values)
 
     ### returns 30 most frequently demanded skills/attributes
     return list_count[:30]
