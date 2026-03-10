@@ -1,51 +1,60 @@
-from summarizer import summarize_text
-from model import tokenizer, model
+from .summarizer import summarize_resume, summarize_job_description
+from .model import tokenizer, model, MODEL_PATH
+from transformers import GenerationConfig
+from pathlib import Path
+import torch
+
+generation_config = GenerationConfig.from_pretrained(
+    MODEL_PATH,
+    local_files_only=True
+)
 
 def create_cover_letter(cv_text: str, jd_text: str):
 
-    summarized_cv = summarize_text(cv_text)
-    summarized_jd = summarize_text(jd_text)
+    summarized_cv = summarize_resume(cv_text)
+    summarized_jd = summarize_job_description(jd_text)
 
-    input_text = f"""
-    You are a professional executive career coach.
-
-    Write a tailored cover letter using the structure below.
-
-    Structure:
-    Paragraph 1:
-    - Express interest in the specific role.
-    - Mention years of leadership experience.
-
-    Paragraph 2:
-    - Connect 2-3 specific achievements to the job requirements.
-    - Be concrete and avoid repetition.
-
-    Paragraph 3:
-    - Reinforce cultural fit and leadership strengths.
-
-    Paragraph 4:
-    - Confident closing and call to action.
-
-    Rules:
-    - Begin with: Dear Hiring Manager,
-    - Do not repeat phrases.
-    - Avoid generic language.
-    - Do not restate the resume summary.
-    - Keep under 300 words.
-
-    Candidate Highlights:
+    prompt = f"""
+    Resume Highlights:
     {summarized_cv}
 
-    Role Requirements:
+    Job Requirements:
     {summarized_jd}
 
-    Write the full letter now.
+    Write a professional cover letter tailored to this role.
+
+    Cover Letter:
+    Dear Hiring Manager,
     """
-    input_ids = tokenizer(input_text, return_tensors="pt").input_ids
-    outputs = model.generate(input_ids, max_new_tokens=350)
 
-    return tokenizer.decode(outputs[0], skip_special_tokens=True)
+    device = model.device
+    inputs = tokenizer(
+        prompt,
+        return_tensors="pt",
+        padding=True,
+        truncation=True
+    ).to(device)
+
+    if torch.cuda.is_available():
+        inputs = inputs.to("cuda")
+
+    with torch.no_grad():
+        outputs = model.generate(
+        **inputs,
+        max_new_tokens=250,
+        do_sample=True,
+        temperature=0.7,
+        top_p=0.9,
+        repetition_penalty=1.1
+    )
+
+    generated_tokens = outputs[0][inputs["input_ids"].shape[-1]:]
+
+    return tokenizer.decode(generated_tokens, skip_special_tokens=True)
 
 
-if __name__ == '__main__':
-    print(create_cover_letter('does this work? I am testing this', 'this does work. The test has succeeded'))
+if __name__ == "__main__":
+    print(create_cover_letter(
+        "Testing resume text",
+        "Testing job description"
+    ))
