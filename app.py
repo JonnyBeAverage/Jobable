@@ -129,9 +129,22 @@ def get_cv_text(uploaded_file) -> str | None:
             return None
     if name.endswith(".pdf"):
         try:
-            import pypdf
-            reader = pypdf.PdfReader(io.BytesIO(raw))
-            return "\n".join((p.extract_text() or "") for p in reader.pages)
+            # Try pypdf first
+            try:
+                import pypdf
+                reader = pypdf.PdfReader(io.BytesIO(raw))
+            except ImportError:
+                # Fallback to PyPDF2 if installed
+                from PyPDF2 import PdfReader
+                reader = PdfReader(io.BytesIO(raw))
+            text_chunks = []
+            for p in reader.pages:
+                try:
+                    text_chunks.append(p.extract_text() or "")
+                except Exception:
+                    continue
+            text = "\n".join(text_chunks).strip()
+            return text or None
         except Exception:
             return None
     if name.endswith(".docx"):
@@ -166,6 +179,22 @@ def cover_letter_to_pdf(letter_text: str) -> bytes:
 # ---------------------------------------------------------------------------
 # Layout
 # ---------------------------------------------------------------------------
+# Full-page CV view (acts like a separate page)
+if st.session_state.get("cv_view_open") and st.session_state.get("cv_view_text"):
+    st.title("📄 Uploaded CV")
+    file_label = st.session_state.get("cv_file_name") or "CV"
+    st.caption(f"File: {file_label}")
+    st.text_area(
+        "CV content",
+        st.session_state["cv_view_text"],
+        height=500,
+        label_visibility="collapsed",
+    )
+    if st.button("← Back to jobs", key="back_from_cv"):
+        st.session_state["cv_view_open"] = False
+        st.rerun()
+    st.stop()
+
 # Sync company page from URL (clickable company link uses ?company=<job_ix>)
 if hasattr(st, "query_params") and "company" in st.query_params:
     try:
@@ -203,18 +232,19 @@ if st.session_state.get("company_page_ix") is not None:
         st.session_state["company_page_ix"] = None
 
 st.title("💼 Jobable")
-st.caption("Find jobs that match your CV")
+# st.caption("Find jobs that match your CV")
 
 # ----- Top: Search + CV upload -----
 with st.container():
-    col_search, col_cv = st.columns([2, 1])
-    with col_search:
-        search_query = st.text_input(
-            "Search jobs",
-            placeholder="e.g. Data Scientist, Python, Remote",
-            label_visibility="collapsed",
-        )
-    with col_cv:
+    search_query = st.text_input(
+        "Search jobs",
+        placeholder="e.g. Data Scientist, Python, Remote",
+        label_visibility="collapsed",
+    )
+
+    # Left = uploader, middle = spacer, right = buttons (shown only when a file is uploaded)
+    col_upload, col_spacer, col_btn = st.columns([1, 1, 0.4])
+    with col_upload:
         uploaded_cv = st.file_uploader(
             "Upload CV",
             type=["pdf", "docx", "txt"],
@@ -222,11 +252,38 @@ with st.container():
         )
         if uploaded_cv is not None:
             st.caption(f"📄 {uploaded_cv.name}")
-            search_with_cv_clicked = st.button("Search with CV", key="search_with_cv")
-        else:
-            search_with_cv_clicked = False
 
-if search_with_cv_clicked and uploaded_cv is not None:
+    # Default button states
+    search_with_cv_clicked = False
+    view_cv_clicked = False
+
+    if uploaded_cv is not None:
+        with col_btn:
+            # Two side‑by‑side buttons: Search with CV and View CV
+            btn_col_search, btn_col_view = st.columns(2)
+            with btn_col_search:
+                search_with_cv_clicked = st.button(
+                    "Search with CV",
+                    key="search_with_cv",
+                )
+            with btn_col_view:
+                view_cv_clicked = st.button(
+                    "View CV",
+                    key="view_cv",
+                )
+
+# Handle "View CV" full-page view
+if "view_cv_clicked" in locals() and view_cv_clicked and uploaded_cv is not None:
+    cv_text = get_cv_text(uploaded_cv)
+    if cv_text and cv_text.strip():
+        st.session_state["cv_view_text"] = cv_text
+        st.session_state["cv_file_name"] = uploaded_cv.name
+        st.session_state["cv_view_open"] = True
+        st.rerun()
+    else:
+        st.warning("Could not read CV text. Try uploading a .txt file.")
+
+if "search_with_cv_clicked" in locals() and search_with_cv_clicked and uploaded_cv is not None:
     cv_text = get_cv_text(uploaded_cv)
     if cv_text and cv_text.strip():
         with st.spinner("Ranking jobs by CV match…"):
@@ -261,7 +318,7 @@ if search_with_cv_clicked and uploaded_cv is not None:
         st.warning("Could not read CV text. Try uploading a .txt file.")
 
 # ----- Main: Scrollable jobs list -----
-st.subheader("Jobs")
+# st.subheader("Jobs")
 st.divider()
 
 
