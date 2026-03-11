@@ -1,9 +1,7 @@
 FROM python:3.12.9
 
-
-
 RUN apt-get update && \
-    apt-get install -y zsh git curl && \
+    apt-get install -y git curl && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /Jobable-1
@@ -11,10 +9,8 @@ WORKDIR /Jobable-1
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY jobable/ml_logic jobable/ml_logic
-COPY jobable/data jobable/data
-
+COPY jobable jobable
 
 EXPOSE 8000
 
-CMD ["zsh"]
+CMD ["uvicorn", "jobable.api:app", "--host", "0.0.0.0", "--port", "8080"]
