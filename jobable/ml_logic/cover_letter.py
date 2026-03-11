@@ -25,7 +25,7 @@ def create_cover_letter(cv_text: str, jd_text: str, tokenizer=None, model=None):
     {summarized_jd}
 
     Write a one page (around 400 words) professional cover letter tailored to this role.
-    Be entheusiastic, forward looking, and professional.
+    Be entheusiastic, forward looking, and professional. Do not write any code.
 
     End the cover letter with
     "Sincerely,
