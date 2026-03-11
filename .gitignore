@@ -5,6 +5,7 @@ test_resume.txt
 .DS_Store
 jobable/.DS_Store
 jobable/model_weights/
+.python-version
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
