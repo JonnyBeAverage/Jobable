@@ -8,7 +8,7 @@ import pandas as pd
 from pathlib import Path
 
 from jobable.ml_logic.cover_letter import create_cover_letter
-from jobable.ml_logic.matching import compute_tfidf_similarity, keywords_missing
+from jobable.ml_logic.matching import compute_tfidf_similarity, keywords_missing, rank_jobs_by_embedding_similarity
 from jobable.ml_logic.preprocess import preprocess_text
 
 # Page config
@@ -53,12 +53,12 @@ st.markdown(
 # ---------------------------------------------------------------------------
 # Load jobs from CSV (cached)
 # ---------------------------------------------------------------------------
-DATA_PATH = Path(__file__).resolve().parent / "jobable" / "data" / "job_title_des.csv"
+DATA_PATH = Path(__file__).resolve().parent / "jobable" / "data" / "embeddings_dataframe.csv"
 
 
 @st.cache_data
 def load_jobs_csv(path: Path):
-    """Load job list from job_title_des.csv. Columns: index, Job Title, Job Description."""
+    """Load job list from embeddings_dataframe.csv. Columns: index, Job Title, Job Description."""
     df = pd.read_csv(path)
     # Normalize: use 'Job Title' and 'Job Description'
     title_col = "Job Title"
@@ -135,13 +135,8 @@ def cover_letter_to_pdf(letter_text: str) -> bytes:
     pdf.add_page()
     pdf.set_font("Helvetica", size=11)
     pdf.set_auto_page_break(auto=True, margin=15)
-<<<<<<< HEAD
-    # Use explicit width so each line has room (w=0 uses "remaining" width and can be 0 after previous line)
-    content_width = getattr(pdf, "epw", pdf.w - pdf.l_margin - pdf.r_margin)
-=======
     #
     content_width = getattr(pdf, 'ewp', pdf.w - pdf.l_margin - pdf.r_margin)
->>>>>>> 6f491e8e3c458ae88483f1bc19ff6e8bfce7fcb2
     # Ensure we only pass bytes that the font can display (Helvetica is Latin-1)
     safe_text = letter_text.encode("latin-1", errors="replace").decode("latin-1")
     for line in safe_text.splitlines():
@@ -215,12 +210,25 @@ if search_with_cv_clicked and uploaded_cv is not None:
     cv_text = get_cv_text(uploaded_cv)
     if cv_text and cv_text.strip():
         with st.spinner("Ranking jobs by CV match…"):
-            scored = []
-            for i, job in enumerate(JOBS):
-                score = compute_tfidf_similarity(job["description"], cv_text)
-                scored.append((score, i))
-            scored.sort(key=lambda x: x[0], reverse=True)
-            st.session_state["jobs_display_order"] = [i for _, i in scored]
+            # Rank jobs by embedding similarity (same model as in test.ipynb: all-MiniLM-L6-v2)
+            scored = rank_jobs_by_embedding_similarity(cv_text, DATA_PATH)
+            if scored is not None:
+                st.session_state["jobs_display_order"] = [i for _, i in scored]
+            else:
+                # Fallback if embeddings CSV missing or no embeddings column: use TF-IDF sort
+                scored = []
+                for i, job in enumerate(JOBS):
+                    score = compute_tfidf_similarity(job["description"], cv_text)
+                    scored.append((score, i))
+                scored.sort(key=lambda x: x[0], reverse=True)
+                st.session_state["jobs_display_order"] = [i for _, i in scored]
+            # Previous sort (TF-IDF only): commented out in favor of embedding similarity
+            # scored = []
+            # for i, job in enumerate(JOBS):
+            #     score = compute_tfidf_similarity(job["description"], cv_text)
+            #     scored.append((score, i))
+            # scored.sort(key=lambda x: x[0], reverse=True)
+            # st.session_state["jobs_display_order"] = [i for _, i in scored]
             st.session_state["jobs_page"] = 0
             st.session_state["cv_search_clicked"] = True
             # Store resume keywords before rerun (file uploader often clears after rerun)
