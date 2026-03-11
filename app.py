@@ -6,10 +6,27 @@ Top: search + CV upload. Main: scrollable list of jobs with title and descriptio
 import streamlit as st
 import pandas as pd
 from pathlib import Path
+from sentence_transformers import SentenceTransformer
 
 from jobable.ml_logic.cover_letter import create_cover_letter
 from jobable.ml_logic.matching import compute_tfidf_similarity, keywords_missing, rank_jobs_by_embedding_similarity
 from jobable.ml_logic.preprocess import preprocess_text
+
+
+# ---------------------------------------------------------------------------
+# Load encoder (search) and cover-letter models once (cached)
+# ---------------------------------------------------------------------------
+@st.cache_resource
+def get_encoder_model():
+    """SentenceTransformer for CV–job similarity; same as in test.ipynb."""
+    return SentenceTransformer("all-MiniLM-L6-v2")
+
+
+@st.cache_resource
+def get_cover_letter_model():
+    """(tokenizer, model) for cover letter generation; loaded once per session."""
+    from jobable.ml_logic.model import tokenizer, model
+    return (tokenizer, model)
 
 # Page config
 
@@ -86,12 +103,12 @@ def load_jobs_csv(path: Path):
 
 
 JOBS = load_jobs_csv(DATA_PATH)
-JOBS_PER_PAGE = 20
+JOBS_PER_PAGE = 12
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-def job_preview_text(description: str, max_words: int = 12) -> str:
+def job_preview_text(description: str, max_words: int = 30) -> str:
     words = description.strip().split()
     if len(words) <= max_words:
         return description
@@ -211,7 +228,8 @@ if search_with_cv_clicked and uploaded_cv is not None:
     if cv_text and cv_text.strip():
         with st.spinner("Ranking jobs by CV match…"):
             # Rank jobs by embedding similarity (same model as in test.ipynb: all-MiniLM-L6-v2)
-            scored = rank_jobs_by_embedding_similarity(cv_text, DATA_PATH)
+            encoder_model = get_encoder_model()
+            scored = rank_jobs_by_embedding_similarity(cv_text, DATA_PATH, model=encoder_model)
             if scored is not None:
                 st.session_state["jobs_display_order"] = [i for _, i in scored]
                 st.session_state["jobs_similarity_scores"] = {i: score for score, i in scored}
@@ -293,7 +311,8 @@ for idx in range(page_start, page_end):
                     jd_text = job["description"]
                     with st.spinner("Generating cover letter…"):
                         try:
-                            letter = create_cover_letter(cv_text, jd_text)
+                            _tok, _mod = get_cover_letter_model()
+                            letter = create_cover_letter(cv_text, jd_text, tokenizer=_tok, model=_mod)
                             pdf_bytes = cover_letter_to_pdf(letter)
                             st.session_state["cover_letter_pdf_bytes"] = pdf_bytes
                             st.session_state["cover_letter_job_ix"] = i

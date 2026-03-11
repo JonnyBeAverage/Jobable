@@ -73,11 +73,12 @@ def _parse_embedding_str(s):
         return None
 
 
-def rank_jobs_by_embedding_similarity(cv_text: str, embeddings_csv_path: Path):
+def rank_jobs_by_embedding_similarity(cv_text: str, embeddings_csv_path: Path, model=None):
     """
     Load job embeddings from embeddings_dataframe.csv (created with SentenceTransformer
     'all-MiniLM-L6-v2' on Job Description), encode cv_text with the same model, compute
     cosine similarity, and return job indices ordered by highest similarity first.
+    Pass model to avoid loading it every call (e.g. a cached SentenceTransformer instance).
     """
     path = Path(embeddings_csv_path)
     if not path.exists():
@@ -93,8 +94,8 @@ def rank_jobs_by_embedding_similarity(cv_text: str, embeddings_csv_path: Path):
             return None
         embs.append(e)
     job_embeddings = np.stack(embs).astype(np.float32)
-    # Same model as in test.ipynb
-    model = SentenceTransformer("all-MiniLM-L6-v2")
+    if model is None:
+        model = SentenceTransformer("all-MiniLM-L6-v2")
     cv_embedding = model.encode(cv_text, convert_to_numpy=True).astype(np.float32)
     cv_embedding = cv_embedding.reshape(1, -1)
     # Cosine similarity: (1 x dim) @ (dim x n) -> (1 x n_jobs)
