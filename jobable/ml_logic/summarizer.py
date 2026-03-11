@@ -2,7 +2,7 @@ from .model import tokenizer, model
 import torch
 
 
-def truncate_to_token_limit(text, max_tokens=450):
+def truncate_to_token_limit(text, max_tokens=900):
     tokens = tokenizer(
         text,
         truncation=True,
