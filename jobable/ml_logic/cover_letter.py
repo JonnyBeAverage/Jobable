@@ -3,11 +3,16 @@ from jobable.ml_logic.model import tokenizer as _default_tokenizer, model as _de
 from transformers import GenerationConfig
 from pathlib import Path
 import torch
+import re
 
 generation_config = GenerationConfig.from_pretrained(
     MODEL_PATH,
     local_files_only=True
 )
+
+def trim_cover_letter(text):
+    pattern = r"Sincerely,\s*\n?\[Your Name\].*"
+    return re.sub(pattern, "Sincerely,\nIsaac Shane", text, flags=re.IGNORECASE | re.DOTALL)
 
 def create_cover_letter(cv_text: str, jd_text: str, tokenizer=None, model=None):
     """Pass tokenizer and model to reuse cached instances (e.g. from app get_cover_letter_model())."""
@@ -29,7 +34,7 @@ def create_cover_letter(cv_text: str, jd_text: str, tokenizer=None, model=None):
 
     End the cover letter with
     "Sincerely,
-    [Your Name]"
+    Isaac Shane"
 
 
     Cover Letter:
@@ -59,7 +64,7 @@ def create_cover_letter(cv_text: str, jd_text: str, tokenizer=None, model=None):
 
     generated_tokens = outputs[0][inputs["input_ids"].shape[-1]:]
 
-    return tok.decode(generated_tokens, skip_special_tokens=True)
+    return trim_cover_letter(tok.decode(generated_tokens, skip_special_tokens=True))
 
 
 if __name__ == "__main__":
