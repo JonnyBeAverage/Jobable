@@ -6,10 +6,26 @@ Top: search + CV upload. Main: scrollable list of jobs with title and descriptio
 import streamlit as st
 import pandas as pd
 from pathlib import Path
-
+from sentence_transformers import SentenceTransformer
 from jobable.ml_logic.cover_letter import fake_cover_letter
-from jobable.ml_logic.matching import compute_tfidf_similarity, keywords_missing
+from jobable.ml_logic.matching import compute_tfidf_similarity, keywords_missing, rank_jobs_by_embedding_similarity
 from jobable.ml_logic.preprocess import preprocess_text
+
+
+# ---------------------------------------------------------------------------
+# Load encoder (search) and cover-letter models once (cached)
+# ---------------------------------------------------------------------------
+@st.cache_resource
+def get_encoder_model():
+    """SentenceTransformer for CV–job similarity; same as in test.ipynb."""
+    return SentenceTransformer("all-MiniLM-L6-v2")
+
+
+@st.cache_resource
+def get_cover_letter_model():
+    """(tokenizer, model) for cover letter generation; loaded once per session."""
+    from jobable.ml_logic.model import tokenizer, model
+    return (tokenizer, model)
 
 # Page config
 
@@ -53,12 +69,12 @@ st.markdown(
 # ---------------------------------------------------------------------------
 # Load jobs from CSV (cached)
 # ---------------------------------------------------------------------------
-DATA_PATH = Path(__file__).resolve().parent / "jobable" / "data" / "job_title_des.csv"
+DATA_PATH = Path(__file__).resolve().parent / "jobable" / "data" / "embeddings_dataframe.csv"
 
 
 @st.cache_data
 def load_jobs_csv(path: Path):
-    """Load job list from job_title_des.csv. Columns: index, Job Title, Job Description."""
+    """Load job list from embeddings_dataframe.csv. Columns: index, Job Title, Job Description."""
     df = pd.read_csv(path)
     # Normalize: use 'Job Title' and 'Job Description'
     title_col = "Job Title"
@@ -86,12 +102,12 @@ def load_jobs_csv(path: Path):
 
 
 JOBS = load_jobs_csv(DATA_PATH)
-JOBS_PER_PAGE = 20
+JOBS_PER_PAGE = 12
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-def job_preview_text(description: str, max_words: int = 12) -> str:
+def job_preview_text(description: str, max_words: int = 30) -> str:
     words = description.strip().split()
     if len(words) <= max_words:
         return description
@@ -136,11 +152,14 @@ def cover_letter_to_pdf(letter_text: str) -> bytes:
     pdf.set_font("Helvetica", size=11)
     pdf.set_auto_page_break(auto=True, margin=15)
     #
-    content_width = getattr(pdf, 'ewp', pdf.w - pdf.l_margin - pdf.r_margin)
+    content_width = pdf.w - pdf.l_margin - pdf.r_margin
     # Ensure we only pass bytes that the font can display (Helvetica is Latin-1)
     safe_text = letter_text.encode("latin-1", errors="replace").decode("latin-1")
     for line in safe_text.splitlines():
-        pdf.multi_cell(content_width, 8, line or " ")
+        pdf.multi_cell(
+            content_width, 8, line or " ",
+            new_x="LMARGIN", new_y="NEXT",
+        )
     return bytes(pdf.output())
 
 # ---------------------------------------------------------------------------
@@ -210,12 +229,28 @@ if search_with_cv_clicked and uploaded_cv is not None:
     cv_text = get_cv_text(uploaded_cv)
     if cv_text and cv_text.strip():
         with st.spinner("Ranking jobs by CV match…"):
-            scored = []
-            for i, job in enumerate(JOBS):
-                score = compute_tfidf_similarity(job["description"], cv_text)
-                scored.append((score, i))
-            scored.sort(key=lambda x: x[0], reverse=True)
-            st.session_state["jobs_display_order"] = [i for _, i in scored]
+            # Rank jobs by embedding similarity (same model as in test.ipynb: all-MiniLM-L6-v2)
+            encoder_model = get_encoder_model()
+            scored = rank_jobs_by_embedding_similarity(cv_text, DATA_PATH, model=encoder_model)
+            if scored is not None:
+                st.session_state["jobs_display_order"] = [i for _, i in scored]
+                st.session_state["jobs_similarity_scores"] = {i: score for score, i in scored}
+            else:
+                # Fallback if embeddings CSV missing or no embeddings column: use TF-IDF sort
+                scored = []
+                for i, job in enumerate(JOBS):
+                    score = compute_tfidf_similarity(job["description"], cv_text)
+                    scored.append((score, i))
+                scored.sort(key=lambda x: x[0], reverse=True)
+                st.session_state["jobs_display_order"] = [i for _, i in scored]
+                st.session_state["jobs_similarity_scores"] = {i: score for score, i in scored}
+            # Previous sort (TF-IDF only): commented out in favor of embedding similarity
+            # scored = []
+            # for i, job in enumerate(JOBS):
+            #     score = compute_tfidf_similarity(job["description"], cv_text)
+            #     scored.append((score, i))
+            # scored.sort(key=lambda x: x[0], reverse=True)
+            # st.session_state["jobs_display_order"] = [i for _, i in scored]
             st.session_state["jobs_page"] = 0
             st.session_state["cv_search_clicked"] = True
             # Store resume keywords before rerun (file uploader often clears after rerun)
@@ -226,8 +261,6 @@ if search_with_cv_clicked and uploaded_cv is not None:
 
 # ----- Main: Scrollable jobs list -----
 st.subheader("Jobs")
-if st.session_state.get("jobs_display_order") is not None:
-    st.caption("Sorted by CV match (best first)")
 st.divider()
 
 
@@ -258,10 +291,16 @@ for idx in range(page_start, page_end):
     with st.container():
         company = job.get("company", "—")
         company_esc = str(company).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-        st.markdown(
-            f'<a href="?company={i}" style="font-weight: 700; color: inherit; text-decoration: none;">{company_esc}</a> — *{job["title"]}*',
-            unsafe_allow_html=True,
+        title_esc = str(job.get("title", "")).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        similarity_scores = st.session_state.get("jobs_similarity_scores") or {}
+        match_html = f'<span style="font-weight: 600;">{similarity_scores[i] * 100:.2f}% match</span>' if i in similarity_scores else ""
+        row_content = (
+            f'<div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem;">'
+            f'<span><a href="?company={i}" style="font-weight: 700; color: inherit; text-decoration: none;">{company_esc}</a> — <em>{title_esc}</em></span>'
+            f'<span>{match_html}</span>'
+            f"</div>"
         )
+        st.markdown(row_content, unsafe_allow_html=True)
         st.caption(job_preview_text(job["description"]))
         if st.button("Generate Cover Letter", key=f"jobable-cl-{i}"):
             if uploaded_cv is None:

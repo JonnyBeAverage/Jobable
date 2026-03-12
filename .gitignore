@@ -1,10 +1,17 @@
 *.csv
 data/
+
+test_resume.txt
+.DS_Store
+jobable/.DS_Store
+jobable/model_weights/
+.python-version
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
 *$py.class
-jobable/model_weights
+
 # C extensions
 *.so
 
@@ -216,3 +223,7 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+#ML Model
+jobable/ml_logic/model_tuning/sft/cover_letter_model_2
+jobable/archived_models
