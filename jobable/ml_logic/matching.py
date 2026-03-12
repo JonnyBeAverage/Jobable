@@ -4,7 +4,7 @@ import pandas as pd
 from pathlib import Path
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-from preprocess import preprocess_text
+from .preprocess import preprocess_text
 from sentence_transformers import SentenceTransformer, util
 
 def compute_tfidf_similarity(text1, text2):
@@ -129,6 +129,3 @@ def keywords_missing(job_text, resume_text=None, kw_job=None, kw_resume=None):
 #     row_indx = row.name
 #     row['embeddings'] = embeddings[row_indx]
 #     return row
-    
-
-    

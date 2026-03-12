@@ -1,0 +1,22 @@
+344 on streamlit == 352 on job_title_des. Company name = InfoSys(Fake)
+
+Company 1737 : Accenture
+
+362 : Astreya
+
+
+1737 == IBM India
+
+1088 == 1131 BairesDev (FAKE)
+
+1173 on streamlit == 1219 job_title_des. Company name == zScaler
+
+323 on streamlit == 329 on job_title_des. Company name = SPNS (Service Provider Networking Systems)
+
+1095 on streamlit == 1138 on job_title_des. Company name = Unknown
+
+1132 on streamlit == 1176 on job_title_des. Company name = Unknown
+
+1166 on streamlit == 1211 on job_title_des. Company name = Carousel Paragraph
+
+## END OF FIRST page
