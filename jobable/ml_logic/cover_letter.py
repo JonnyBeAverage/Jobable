@@ -12,7 +12,7 @@ generation_config = GenerationConfig.from_pretrained(
 
 def trim_cover_letter(text):
     pattern = r"Sincerely,\s*\n?\[Your Name\].*"
-    return re.sub(pattern, "Sincerely,\n[Your Name]", text, flags=re.IGNORECASE | re.DOTALL)
+    return re.sub(pattern, "Sincerely,\nIsaac Shane", text, flags=re.IGNORECASE | re.DOTALL)
 
 def create_cover_letter(cv_text: str, jd_text: str, tokenizer=None, model=None):
     """Pass tokenizer and model to reuse cached instances (e.g. from app get_cover_letter_model())."""
@@ -34,7 +34,7 @@ def create_cover_letter(cv_text: str, jd_text: str, tokenizer=None, model=None):
 
     End the cover letter with
     "Sincerely,
-    [Your Name]"
+    Isaac Shane"
 
 
     Cover Letter:
