@@ -61,6 +61,14 @@ st.markdown(
         color: #7f1d1d;
         border: 1px solid rgba(185, 28, 28, 0.3);
     }
+    /* Main title: centered, padding below */
+    .jobable-main-title { text-align: center; margin-bottom: 1rem; }
+    .jobable-main-title h1 { font-size: 2.25rem; font-weight: 600; margin: 0; }
+    /* Jobs section: no padding below divider */
+    .jobable-jobs-header { margin-bottom: 0 !important; padding-bottom: 0 !important; }
+    .main .block-container > div:has(.jobable-jobs-header) { margin-bottom: 0.75rem !important; padding-bottom: 0 !important; }
+    .jobable-jobs-header hr { margin-top: 0 !important; margin-bottom: 0 !important; }
+    .jobable-jobs-header h2 { margin-bottom: 0 !important; margin-top: 0; font-size: 1.25rem; font-weight: 600; }
     </style>
     """,
     unsafe_allow_html=True,
@@ -70,6 +78,18 @@ st.markdown(
 # Load jobs from CSV (cached)
 # ---------------------------------------------------------------------------
 DATA_PATH = Path(__file__).resolve().parent / "jobable" / "data" / "embeddings_dataframe.csv"
+
+# Realistic company names (cycled by job index when CSV has no company column)
+COMPANY_NAMES = [
+    "Accenture", "Adobe", "Amazon", "Atlassian", "Bloomberg", "Capgemini", "Cisco",
+    "Deloitte", "Dropbox", "Epam Systems", "Google", "IBM", "Infosys", "Intel",
+    "JPMorgan Chase", "McKinsey & Company", "Microsoft", "Netflix", "Oracle",
+    "Salesforce", "SAP", "Slack", "Spotify", "Stripe", "Tesla", "Twilio",
+    "Uber", "VMware", "Wipro", "Zoom", "Airbnb", "Meta", "Shopify", "Square",
+    "PayPal", "LinkedIn", "GitHub", "Notion", "Figma", "Canva", "HubSpot",
+    "Snowflake", "Databricks", "MongoDB", "ServiceNow", "Workday", "Splunk",
+    "Crowdstrike", "Okta", "Zscaler", "DocuSign", "RingCentral",
+]
 
 
 @st.cache_data
@@ -83,6 +103,8 @@ def load_jobs_csv(path: Path):
         return []
     jobs = []
     for i, row in df.iterrows():
+        if i == 0:
+            continue  # Skip first entry
         title = row[title_col]
         desc = row[desc_col]
         if pd.isna(title):
@@ -92,9 +114,10 @@ def load_jobs_csv(path: Path):
         # Flatten multiline description to single line for preview
         desc_flat = " ".join(str(desc).split())
         kw = sorted(preprocess_text(desc_flat))  # list of keyword phrases
+        company = row["company"] if "company" in df.columns and pd.notna(row.get("company")) else COMPANY_NAMES[(i - 1) % len(COMPANY_NAMES)]
         jobs.append({
             "title": str(title).strip(),
-            "company": f"Company {i + 1}",
+            "company": str(company).strip(),
             "description": desc_flat,
             "kw": kw,
         })
@@ -107,7 +130,7 @@ JOBS_PER_PAGE = 12
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-def job_preview_text(description: str, max_words: int = 30) -> str:
+def job_preview_text(description: str, max_words: int = 20) -> str:
     words = description.strip().split()
     if len(words) <= max_words:
         return description
@@ -201,29 +224,35 @@ if st.session_state.get("company_page_ix") is not None:
     else:
         st.session_state["company_page_ix"] = None
 
-st.title("💼 Jobable")
-st.caption("Find jobs that match your CV")
+st.markdown(
+    '<div class="jobable-main-title"><h1>Jobable</h1></div>',
+    unsafe_allow_html=True,
+)
 
 # ----- Top: Search + CV upload -----
 with st.container():
-    col_search, col_cv = st.columns([2, 1])
-    with col_search:
+    # Centered box: search bar and CV controls share same width
+    left_pad, center_box, right_pad = st.columns([1, 7, 1])
+    with center_box:
         search_query = st.text_input(
             "Search jobs",
             placeholder="e.g. Data Scientist, Python, Remote",
             label_visibility="collapsed",
         )
-    with col_cv:
-        uploaded_cv = st.file_uploader(
-            "Upload CV",
-            type=["pdf", "docx", "txt"],
-            label_visibility="collapsed",
-        )
-        if uploaded_cv is not None:
-            st.caption(f"📄 {uploaded_cv.name}")
-            search_with_cv_clicked = st.button("Search with CV", key="search_with_cv")
-        else:
-            search_with_cv_clicked = False
+
+        # Left = drag-and-drop uploader; middle = spacer; right = Search with CV button
+        col_upload, col_spacer, col_btn = st.columns([3, 0.3, 1])
+        with col_upload:
+            uploaded_cv = st.file_uploader(
+                "Upload CV",
+                type=["pdf", "docx", "txt"],
+                label_visibility="collapsed",
+            )
+        with col_btn:
+            if uploaded_cv is not None:
+                search_with_cv_clicked = st.button("Search with CV", key="search_with_cv")
+            else:
+                search_with_cv_clicked = False
 
 if search_with_cv_clicked and uploaded_cv is not None:
     cv_text = get_cv_text(uploaded_cv)
@@ -260,8 +289,13 @@ if search_with_cv_clicked and uploaded_cv is not None:
         st.warning("Could not read CV text. Try uploading a .txt file.")
 
 # ----- Main: Scrollable jobs list -----
-st.subheader("Jobs")
-st.divider()
+st.markdown('<div style="height: 3rem;"></div>', unsafe_allow_html=True)
+
+st.markdown(
+    '<div class="jobable-jobs-header"><h2>📝 Jobs Available</h2><hr /></div>',
+    unsafe_allow_html=True,
+)
+st.markdown('<div style="height: 2rem;"></div>', unsafe_allow_html=True)
 
 
 def _safe_filename(s: str, max_len: int = 50) -> str:
@@ -302,7 +336,7 @@ for idx in range(page_start, page_end):
         )
         st.markdown(row_content, unsafe_allow_html=True)
         st.caption(job_preview_text(job["description"]))
-        if st.button("Generate Cover Letter", key=f"jobable-cl-{i}"):
+        if st.button("🪄 Generate Cover Letter", key=f"jobable-cl-{i}"):
             if uploaded_cv is None:
                 st.warning("Upload a CV first to generate a cover letter.")
             else:
@@ -311,7 +345,7 @@ for idx in range(page_start, page_end):
                     st.warning("Could not read CV text. Try uploading a .txt file.")
                 else:
                     jd_text = job["description"]
-                    with st.spinner("Generating cover letter…"):
+                    with st.spinner("Generating Cover Letter…"):
                         try:
                             letter = fake_cover_letter()
                             pdf_bytes = cover_letter_to_pdf(letter)
@@ -326,7 +360,7 @@ for idx in range(page_start, page_end):
         ):
             job_label = _safe_filename(job["title"])
             st.download_button(
-                label="Download cover letter",
+                label="📥 Download Cover Letter",
                 data=st.session_state["cover_letter_pdf_bytes"],
                 file_name=f"cover_letter_{job_label}.pdf",
                 mime="application/pdf",

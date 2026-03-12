@@ -88,11 +88,20 @@ def rank_jobs_by_embedding_similarity(cv_text: str, embeddings_csv_path: Path, m
         return None
     # Parse embeddings column into a matrix (n_jobs x dim)
     embs = []
-    for _, row in df.iterrows():
+    job_indices = []
+    # Keep CSV row -> JOB index alignment consistent with load_jobs_csv in app.py,
+    # which skips the first CSV row when building JOBS.
+    for csv_ix, row in df.iterrows():
+        if csv_ix == 0:
+            continue  # Skip first entry to align with JOBS indices
         e = _parse_embedding_str(row.get("embeddings"))
         if e is None:
             return None
         embs.append(e)
+        # JOBS[0] corresponds to CSV row 1, so subtract 1
+        job_indices.append(csv_ix - 1)
+    if not embs:
+        return None
     job_embeddings = np.stack(embs).astype(np.float32)
     if model is None:
         model = SentenceTransformer("all-MiniLM-L6-v2")
@@ -102,7 +111,8 @@ def rank_jobs_by_embedding_similarity(cv_text: str, embeddings_csv_path: Path, m
     sim = cosine_similarity(cv_embedding, job_embeddings)[0]
     # Order by highest similarity first
     order = np.argsort(sim)[::-1]
-    return [(float(sim[i]), int(i)) for i in order]
+    # Map back to JOBS indices (aligned with load_jobs_csv)
+    return [(float(sim[i]), int(job_indices[i])) for i in order]
 
 
 def keywords_missing(job_text, resume_text=None, kw_job=None, kw_resume=None):
