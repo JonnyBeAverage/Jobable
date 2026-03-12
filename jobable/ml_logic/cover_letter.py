@@ -4,6 +4,7 @@ from transformers import GenerationConfig
 from pathlib import Path
 import torch
 import re
+import time
 
 generation_config = GenerationConfig.from_pretrained(
     MODEL_PATH,
