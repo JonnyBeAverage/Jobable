@@ -3,6 +3,7 @@ from .model import tokenizer, model, MODEL_PATH
 from transformers import GenerationConfig
 from pathlib import Path
 import torch
+import time
 
 generation_config = GenerationConfig.from_pretrained(
     MODEL_PATH,
@@ -58,6 +59,28 @@ def create_cover_letter(cv_text: str, jd_text: str):
 
     return tokenizer.decode(generated_tokens, skip_special_tokens=True)
 
+
+def fake_cover_letter():
+    time.sleep(60)
+    return """My name is Isaac Shane, and I am writing to express my interest in the Network Engineer (Test Lab) role at
+    your organization. I have been following your company?s progress for several months now and was excited
+    to see that you are looking for talented individuals to join your team. After reviewing the job description, I
+    believe that I possess many of the skills and qualifications necessary to excel in this role.
+    As a Network Engineer with 5+ years of experience in the industry, I am confident that I would be able to
+    make significant contributions to your organization. My expertise in networking, combined with my basic to
+    intermediate programming language skills, would enable me to develop and execute automated Network OS
+    compliance tests for network vendor hardware used in the corporate network environment. Additionally, I am
+    proficient with circuit board and microscope soldering skills and rework, which would be beneficial when
+    troubleshooting and fixing problems with Test Infrastructure.
+    In terms of education, I hold a Bachelor?s degree in Computer Science, which has equipped me with the
+    necessary knowledge and skills to succeed in the IT sector. Moreover, I am eager to learn more about
+    DevOps and Test Automation frameworks, which could be valuable assets to your company.
+    Overall, I am very interested in joining your team and contributing to your organization?s continued
+    success. Thank you for considering my application. Please do not hesitate to contact me if you require any
+    further information.
+    Best regards,
+    Isaac Shane
+    """
 
 if __name__ == "__main__":
     print(create_cover_letter(

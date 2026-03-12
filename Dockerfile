@@ -13,4 +13,4 @@ COPY jobable jobable
 
 EXPOSE 8000
 
-CMD ["uvicorn", "jobable.api:app", "--host", "0.0.0.0", "--port", "$PORT"]
+CMD ["sh", "-c", "uvicorn jobable.api:app --host 0.0.0.0 --port $PORT"]
