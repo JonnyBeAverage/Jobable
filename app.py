@@ -7,7 +7,7 @@ import streamlit as st
 import pandas as pd
 from pathlib import Path
 
-from jobable.ml_logic.cover_letter import create_cover_letter
+from jobable.ml_logic.cover_letter import fake_cover_letter
 from jobable.ml_logic.matching import compute_tfidf_similarity, keywords_missing
 from jobable.ml_logic.preprocess import preprocess_text
 
@@ -274,7 +274,7 @@ for idx in range(page_start, page_end):
                     jd_text = job["description"]
                     with st.spinner("Generating cover letter…"):
                         try:
-                            letter = create_cover_letter(cv_text, jd_text)
+                            letter = fake_cover_letter()
                             pdf_bytes = cover_letter_to_pdf(letter)
                             st.session_state["cover_letter_pdf_bytes"] = pdf_bytes
                             st.session_state["cover_letter_job_ix"] = i
