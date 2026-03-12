@@ -11,8 +11,9 @@ generation_config = GenerationConfig.from_pretrained(
 )
 
 def trim_cover_letter(text):
-    pattern = r"Sincerely,\s*\n?\[Your Name\].*"
-    return re.sub(pattern, "Sincerely,\nIsaac Shane", text, flags=re.IGNORECASE | re.DOTALL)
+    result = re.sub(r"(Sincerely,\s*\r?\nIsaac Shane).*", r"\1", text, flags=re.DOTALL)
+    result = re.sub(r"(Best regards,\s*\r?\nIsaac Shane).*", r"\1", result, flags=re.DOTALL)
+    return result
 
 def create_cover_letter(cv_text: str, jd_text: str, tokenizer=None, model=None):
     """Pass tokenizer and model to reuse cached instances (e.g. from app get_cover_letter_model())."""
@@ -32,16 +33,9 @@ def create_cover_letter(cv_text: str, jd_text: str, tokenizer=None, model=None):
     Write a one page (around 400 words) professional cover letter tailored to this role.
     Be entheusiastic, forward looking, and professional. Do not write any code.
 
-<<<<<<< HEAD
-    END the cover letter with:
+    End the cover letter with:
     Sincerely,
-    [Your Name]
-    AND DO NOT ADD ANYTHING AFTER THIS.
-=======
-    End the cover letter with
-    "Sincerely,
-    Isaac Shane"
->>>>>>> 1c311eec7ee27e6b09b6fd16885a7904bb996068
+    Isaac Shane
 
 
     Cover Letter:

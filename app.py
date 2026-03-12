@@ -108,7 +108,7 @@ JOBS_PER_PAGE = 12
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-def job_preview_text(description: str, max_words: int = 30) -> str:
+def job_preview_text(description: str, max_words: int = 120) -> str:
     words = description.strip().split()
     if len(words) <= max_words:
         return description
