@@ -25,11 +25,12 @@ def create_cover_letter(cv_text: str, jd_text: str, tokenizer=None, model=None):
     {summarized_jd}
 
     Write a one page (around 400 words) professional cover letter tailored to this role.
-    Be entheusiastic, forward looking, and professional.
+    Be entheusiastic, forward looking, and professional. Do not write any code.
 
-    End the cover letter with
-    "Sincerely,
-    [Your Name]"
+    END the cover letter with:
+    Sincerely,
+    [Your Name]
+    AND DO NOT ADD ANYTHING AFTER THIS.
 
 
     Cover Letter:
@@ -50,7 +51,7 @@ def create_cover_letter(cv_text: str, jd_text: str, tokenizer=None, model=None):
     with torch.no_grad():
         outputs = mod.generate(
             **inputs,
-            max_new_tokens=1000,
+            max_new_tokens=600,
             do_sample=True,
             temperature=0.7,
             top_p=0.9,
