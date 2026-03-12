@@ -80,6 +80,18 @@ st.markdown(
 # ---------------------------------------------------------------------------
 DATA_PATH = Path(__file__).resolve().parent / "jobable" / "data" / "embeddings_dataframe.csv"
 
+# Realistic company names (cycled by job index when CSV has no company column)
+COMPANY_NAMES = [
+    "Accenture", "Adobe", "Amazon", "Atlassian", "Bloomberg", "Capgemini", "Cisco",
+    "Deloitte", "Dropbox", "Epam Systems", "Google", "IBM", "Infosys", "Intel",
+    "JPMorgan Chase", "McKinsey & Company", "Microsoft", "Netflix", "Oracle",
+    "Salesforce", "SAP", "Slack", "Spotify", "Stripe", "Tesla", "Twilio",
+    "Uber", "VMware", "Wipro", "Zoom", "Airbnb", "Meta", "Shopify", "Square",
+    "PayPal", "LinkedIn", "GitHub", "Notion", "Figma", "Canva", "HubSpot",
+    "Snowflake", "Databricks", "MongoDB", "ServiceNow", "Workday", "Splunk",
+    "Crowdstrike", "Okta", "Zscaler", "DocuSign", "RingCentral",
+]
+
 
 @st.cache_data
 def load_jobs_csv(path: Path):
@@ -92,6 +104,8 @@ def load_jobs_csv(path: Path):
         return []
     jobs = []
     for i, row in df.iterrows():
+        if i == 0:
+            continue  # Skip first entry
         title = row[title_col]
         desc = row[desc_col]
         if pd.isna(title):
@@ -101,9 +115,10 @@ def load_jobs_csv(path: Path):
         # Flatten multiline description to single line for preview
         desc_flat = " ".join(str(desc).split())
         kw = sorted(preprocess_text(desc_flat))  # list of keyword phrases
+        company = row["company"] if "company" in df.columns and pd.notna(row.get("company")) else COMPANY_NAMES[(i - 1) % len(COMPANY_NAMES)]
         jobs.append({
             "title": str(title).strip(),
-            "company": f"Company {i + 1}",
+            "company": str(company).strip(),
             "description": desc_flat,
             "kw": kw,
         })
@@ -116,7 +131,7 @@ JOBS_PER_PAGE = 12
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-def job_preview_text(description: str, max_words: int = 110) -> str:
+def job_preview_text(description: str, max_words: int = 20) -> str:
     words = description.strip().split()
     if len(words) <= max_words:
         return description
@@ -187,7 +202,7 @@ if st.session_state.get("company_page_ix") is not None:
     if 0 <= ix < len(JOBS):
         job = JOBS[ix]
         company_name = job.get("company", "—")
-        st.title("Jobable")
+        st.title("💼 Jobable")
         if st.button("← Back to jobs", key="back_from_company"):
             st.session_state["company_page_ix"] = None
             if hasattr(st, "query_params"):
@@ -278,7 +293,7 @@ if search_with_cv_clicked and uploaded_cv is not None:
 st.markdown('<div style="height: 3rem;"></div>', unsafe_allow_html=True)
 
 st.markdown(
-    '<div class="jobable-jobs-header"><h2>Jobs Available</h2><hr /></div>',
+    '<div class="jobable-jobs-header"><h2>📝 Jobs Available</h2><hr /></div>',
     unsafe_allow_html=True,
 )
 st.markdown('<div style="height: 2rem;"></div>', unsafe_allow_html=True)
@@ -322,7 +337,7 @@ for idx in range(page_start, page_end):
         )
         st.markdown(row_content, unsafe_allow_html=True)
         st.caption(job_preview_text(job["description"]))
-        if st.button("Generate Cover Letter", key=f"jobable-cl-{i}"):
+        if st.button("🪄 Generate Cover Letter", key=f"jobable-cl-{i}"):
             if uploaded_cv is None:
                 st.warning("Upload a CV first to generate a cover letter.")
             else:
@@ -347,7 +362,7 @@ for idx in range(page_start, page_end):
         ):
             job_label = _safe_filename(job["title"])
             st.download_button(
-                label="Download Cover Letter",
+                label="📥 Download Cover Letter",
                 data=st.session_state["cover_letter_pdf_bytes"],
                 file_name=f"cover_letter_{job_label}.pdf",
                 mime="application/pdf",
