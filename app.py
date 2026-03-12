@@ -62,6 +62,14 @@ st.markdown(
         color: #7f1d1d;
         border: 1px solid rgba(185, 28, 28, 0.3);
     }
+    /* Main title: centered, padding below */
+    .jobable-main-title { text-align: center; margin-bottom: 1rem; }
+    .jobable-main-title h1 { font-size: 2.25rem; font-weight: 600; margin: 0; }
+    /* Jobs section: no padding below divider */
+    .jobable-jobs-header { margin-bottom: 0 !important; padding-bottom: 0 !important; }
+    .main .block-container > div:has(.jobable-jobs-header) { margin-bottom: 0.75rem !important; padding-bottom: 0 !important; }
+    .jobable-jobs-header hr { margin-top: 0 !important; margin-bottom: 0 !important; }
+    .jobable-jobs-header h2 { margin-bottom: 0 !important; margin-top: 0; font-size: 1.25rem; font-weight: 600; }
     </style>
     """,
     unsafe_allow_html=True,
@@ -202,8 +210,10 @@ if st.session_state.get("company_page_ix") is not None:
     else:
         st.session_state["company_page_ix"] = None
 
-st.title("Jobable")
-# st.caption("Find jobs that match your CV")
+st.markdown(
+    '<div class="jobable-main-title"><h1>Jobable</h1></div>',
+    unsafe_allow_html=True,
+)
 
 # ----- Top: Search + CV upload -----
 with st.container():
@@ -217,7 +227,7 @@ with st.container():
         )
 
         # Left = drag-and-drop uploader; middle = spacer; right = Search with CV button
-        col_upload, col_spacer, col_btn = st.columns([1, 0.3, 0.4])
+        col_upload, col_spacer, col_btn = st.columns([3, 0.3, 1])
         with col_upload:
             uploaded_cv = st.file_uploader(
                 "Upload CV",
@@ -265,8 +275,13 @@ if search_with_cv_clicked and uploaded_cv is not None:
         st.warning("Could not read CV text. Try uploading a .txt file.")
 
 # ----- Main: Scrollable jobs list -----
-# st.subheader("Jobs")
-st.divider()
+st.markdown('<div style="height: 3rem;"></div>', unsafe_allow_html=True)
+
+st.markdown(
+    '<div class="jobable-jobs-header"><h2>Jobs Available</h2><hr /></div>',
+    unsafe_allow_html=True,
+)
+st.markdown('<div style="height: 2rem;"></div>', unsafe_allow_html=True)
 
 
 def _safe_filename(s: str, max_len: int = 50) -> str:
