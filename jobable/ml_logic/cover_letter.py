@@ -6,63 +6,63 @@ import torch
 import re
 import time
 
-generation_config = GenerationConfig.from_pretrained(
-    MODEL_PATH,
-    local_files_only=True
-)
+# generation_config = GenerationConfig.from_pretrained(
+#     MODEL_PATH,
+#     local_files_only=True
+# )
 
-def create_cover_letter(cv_text: str, jd_text: str, tokenizer=None, model=None):
-    """Pass tokenizer and model to reuse cached instances (e.g. from app get_cover_letter_model())."""
-    tok = tokenizer if tokenizer is not None else _default_tokenizer
-    mod = model if model is not None else _default_model
+# def create_cover_letter(cv_text: str, jd_text: str, tokenizer=None, model=None):
+#     """Pass tokenizer and model to reuse cached instances (e.g. from app get_cover_letter_model())."""
+#     tok = tokenizer if tokenizer is not None else _default_tokenizer
+#     mod = model if model is not None else _default_model
 
-    summarized_cv = summarize_resume(cv_text, tokenizer=tok, model=mod)
-    summarized_jd = summarize_job_description(jd_text, tokenizer=tok, model=mod)
+#     summarized_cv = summarize_resume(cv_text, tokenizer=tok, model=mod)
+#     summarized_jd = summarize_job_description(jd_text, tokenizer=tok, model=mod)
 
-    prompt = f"""
-    Resume Highlights:
-    {summarized_cv}
+#     prompt = f"""
+#     Resume Highlights:
+#     {summarized_cv}
 
-    Job Requirements:
-    {summarized_jd}
+#     Job Requirements:
+#     {summarized_jd}
 
-    Write a one page (around 400 words) professional cover letter tailored to this role.
-    Be entheusiastic, forward looking, and professional. Do not write any code.
+#     Write a one page (around 400 words) professional cover letter tailored to this role.
+#     Be entheusiastic, forward looking, and professional. Do not write any code.
 
-    END the cover letter with:
-    Sincerely,
-    [Your Name]
-    AND DO NOT ADD ANYTHING AFTER THIS.
+#     END the cover letter with:
+#     Sincerely,
+#     [Your Name]
+#     AND DO NOT ADD ANYTHING AFTER THIS.
 
 
-    Cover Letter:
-    Dear Hiring Manager,
-    """
+#     Cover Letter:
+#     Dear Hiring Manager,
+#     """
 
-    device = mod.device
-    inputs = tok(
-        prompt,
-        return_tensors="pt",
-        padding=True,
-        truncation=True
-    ).to(device)
+#     device = mod.device
+#     inputs = tok(
+#         prompt,
+#         return_tensors="pt",
+#         padding=True,
+#         truncation=True
+#     ).to(device)
 
-    if torch.cuda.is_available():
-        inputs = inputs.to("cuda")
+#     if torch.cuda.is_available():
+#         inputs = inputs.to("cuda")
 
-    with torch.no_grad():
-        outputs = mod.generate(
-            **inputs,
-            max_new_tokens=600,
-            do_sample=True,
-            temperature=0.7,
-            top_p=0.9,
-            repetition_penalty=1.1
-        )
+#     with torch.no_grad():
+#         outputs = mod.generate(
+#             **inputs,
+#             max_new_tokens=600,
+#             do_sample=True,
+#             temperature=0.7,
+#             top_p=0.9,
+#             repetition_penalty=1.1
+#         )
 
-    generated_tokens = outputs[0][inputs["input_ids"].shape[-1]:]
+#     generated_tokens = outputs[0][inputs["input_ids"].shape[-1]:]
 
-    return tok.decode(generated_tokens, skip_special_tokens=True)
+#     return tok.decode(generated_tokens, skip_special_tokens=True)
 
 
 def fake_cover_letter():
@@ -87,11 +87,11 @@ def fake_cover_letter():
     )
     return letter
 
-if __name__ == "__main__":
-    print(create_cover_letter(
-        "Testing resume text",
-        "Testing job description"
-    ))
+# if __name__ == "__main__":
+#     print(create_cover_letter(
+#         "Testing resume text",
+#         "Testing job description"
+#     ))
     # With cached model (e.g. from app):
     # tok, mod = get_cover_letter_model()
     # print(create_cover_letter("Resume...", "JD...", tokenizer=tok, model=mod))
