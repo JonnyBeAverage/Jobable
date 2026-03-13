@@ -3,6 +3,7 @@ from jobable.ml_logic.summarizer import summarize_resume, summarize_job_descript
 from transformers import GenerationConfig
 # from pathlib import Path
 import torch
+import re
 import time
 
 generation_config = GenerationConfig.from_pretrained(

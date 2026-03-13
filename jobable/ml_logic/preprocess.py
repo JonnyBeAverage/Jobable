@@ -1,8 +1,11 @@
 import re
 import string
 from nltk.stem import WordNetLemmatizer
+import nltk
 from nltk.corpus import stopwords
 from .data_keywords import DATA_KEYWORDS
+
+nltk.download("stopwords")
 
 STOP_WORDS = set(stopwords.words("english"))
 LEMMATIZER = WordNetLemmatizer()
