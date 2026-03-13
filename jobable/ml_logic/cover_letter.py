@@ -11,10 +11,6 @@ generation_config = GenerationConfig.from_pretrained(
     local_files_only=True
 )
 
-def trim_cover_letter(text):
-    pattern = r"Sincerely,\s*\n?\[Your Name\].*"
-    return re.sub(pattern, "Sincerely,\nIsaac Shane", text, flags=re.IGNORECASE | re.DOTALL)
-
 def create_cover_letter(cv_text: str, jd_text: str, tokenizer=None, model=None):
     """Pass tokenizer and model to reuse cached instances (e.g. from app get_cover_letter_model())."""
     tok = tokenizer if tokenizer is not None else _default_tokenizer
@@ -33,9 +29,10 @@ def create_cover_letter(cv_text: str, jd_text: str, tokenizer=None, model=None):
     Write a one page (around 400 words) professional cover letter tailored to this role.
     Be entheusiastic, forward looking, and professional. Do not write any code.
 
-    End the cover letter with
-    "Sincerely,
-    Isaac Shane"
+    END the cover letter with:
+    Sincerely,
+    [Your Name]
+    AND DO NOT ADD ANYTHING AFTER THIS.
 
 
     Cover Letter:
@@ -56,7 +53,7 @@ def create_cover_letter(cv_text: str, jd_text: str, tokenizer=None, model=None):
     with torch.no_grad():
         outputs = mod.generate(
             **inputs,
-            max_new_tokens=1000,
+            max_new_tokens=600,
             do_sample=True,
             temperature=0.7,
             top_p=0.9,
@@ -65,7 +62,7 @@ def create_cover_letter(cv_text: str, jd_text: str, tokenizer=None, model=None):
 
     generated_tokens = outputs[0][inputs["input_ids"].shape[-1]:]
 
-    return trim_cover_letter(tok.decode(generated_tokens, skip_special_tokens=True))
+    return tok.decode(generated_tokens, skip_special_tokens=True)
 
 
 def fake_cover_letter():
@@ -101,7 +98,7 @@ if __name__ == "__main__":
 
 
 
-### ========ISAAC VERSION FOR TESTING============
+# ### ========ISAAC VERSION FOR TESTING============
 
 # from .summarizer import summarize_resume, summarize_job_description
 # from .model import tokenizer as _default_tokenizer, model as _default_model
