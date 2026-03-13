@@ -153,3 +153,5 @@ xxhash==3.6.0
 yarl==1.23.0
 fastapi
 uvicorn[standard]
+pypdf==6.8.0
+fpdf==1.7.2
