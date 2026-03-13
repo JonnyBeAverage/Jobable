@@ -21,11 +21,11 @@ def get_encoder_model():
     return SentenceTransformer("all-MiniLM-L6-v2")
 
 
-@st.cache_resource
-def get_cover_letter_model():
-    """(tokenizer, model) for cover letter generation; loaded once per session."""
-    from jobable.ml_logic.model import tokenizer, model
-    return (tokenizer, model)
+# @st.cache_resource
+# def get_cover_letter_model():
+#     """(tokenizer, model) for cover letter generation; loaded once per session."""
+#     from jobable.ml_logic.model import tokenizer, model
+#     return (tokenizer, model)
 
 # Page config
 
@@ -77,8 +77,8 @@ st.markdown(
 # ---------------------------------------------------------------------------
 # Load jobs from CSV (cached)
 # ---------------------------------------------------------------------------
-DATA_PATH = Path(__file__).resolve().parent / "jobable" / "data" / "embeddings_dataframe.csv"
-
+# DATA_PATH = Path(__file__).resolve().parent / "jobable" / "data" / "embeddings_dataframe.csv"
+DATA_PATH = 'jobable/data/embeddings_dataframe.csv'
 # Realistic company names (cycled by job index when CSV has no company column)
 COMPANY_NAMES = [
     "Accenture", "Adobe", "Amazon", "Atlassian", "Bloomberg", "Capgemini", "Cisco",
