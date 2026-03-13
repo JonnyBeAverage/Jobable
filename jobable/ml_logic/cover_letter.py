@@ -1,8 +1,9 @@
 from jobable.ml_logic.summarizer import summarize_resume, summarize_job_description
-from jobable.ml_logic.model import tokenizer as _default_tokenizer, model as _default_model, MODEL_PATH
+# from jobable.ml_logic.model import tokenizer as _default_tokenizer, model as _default_model, MODEL_PATH
 from transformers import GenerationConfig
-from pathlib import Path
+# from pathlib import Path
 import torch
+import time
 
 generation_config = GenerationConfig.from_pretrained(
     MODEL_PATH,
