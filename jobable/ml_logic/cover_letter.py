@@ -3,6 +3,8 @@ from jobable.ml_logic.model import tokenizer as _default_tokenizer, model as _de
 from transformers import GenerationConfig
 from pathlib import Path
 import torch
+import re
+import time
 
 generation_config = GenerationConfig.from_pretrained(
     MODEL_PATH,
